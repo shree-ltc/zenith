@@ -517,85 +517,182 @@ class Moderation(commands.Cog):
             await ctx.reply(embed=ZenithEmbed.error("Upload Error", f"Failed to upload emoji: {e}"), mention_author=False)
 
     # ═══════════════════════════════════════════════════════════════
-    #  PURGE SUITE
+    #  NICKNAME & VOICE MODERATION SUITE
     # ═══════════════════════════════════════════════════════════════
 
-    @commands.group(name="purge", aliases=["clear", "c"], invoke_without_command=True)
-    @commands.has_permissions(manage_messages=True)
-    @commands.bot_has_permissions(manage_messages=True)
-    async def purge_group(self, ctx: commands.Context, amount: int = 25):
-        """Bulk cleans up recent messages in the active channel (up to 1000)."""
-        if amount < 1 or amount > 1000:
-            return await ctx.reply(embed=ZenithEmbed.error("Invalid Range", "Provide message count between 1 and 1000."), mention_author=False)
+    @commands.command(name="nick", aliases=["setnick"])
+    @commands.has_permissions(manage_nicknames=True)
+    @commands.bot_has_permissions(manage_nicknames=True)
+    async def nick_command(self, ctx: commands.Context, member: discord.Member, *, nickname: Optional[str] = None):
+        """Change or reset a member's server nickname."""
+        if not await self.can_moderate(ctx, member):
+            return await ctx.reply("[ERROR] Hierarchy restriction: Cannot modify this member.", mention_author=False)
 
-        deleted = await ctx.channel.purge(limit=amount + 1)
-        msg = await ctx.send(embed=ZenithEmbed.success("Purge Complete", f"Purged **{len(deleted) - 1}** messages."))
-        await asyncio.sleep(4)
+        old_nick = member.display_name
         try:
-            await msg.delete()
-        except Exception:
-            pass
+            await member.edit(nick=nickname, reason=f"Moderator: {ctx.author}")
+            if nickname:
+                await ctx.reply(f"[OK] Changed nickname of {member.mention} to `{nickname}`.", mention_author=False)
+            else:
+                await ctx.reply(f"[OK] Reset nickname for {member.mention} (was `{old_nick}`).", mention_author=False)
+        except Exception as e:
+            await ctx.reply(f"[ERROR] Failed to alter nickname: {e}", mention_author=False)
 
-    @purge_group.command(name="bots")
-    @commands.has_permissions(manage_messages=True)
-    async def purge_bots(self, ctx: commands.Context, amount: int = 50):
-        """Purges messages authored strictly by automated bots."""
-        deleted = await ctx.channel.purge(limit=amount + 1, check=lambda m: m.author.bot)
-        msg = await ctx.send(embed=ZenithEmbed.success("Bot Purge Complete", f"Deleted **{len(deleted)}** bot messages."))
-        await asyncio.sleep(4)
-        try:
-            await msg.delete()
-        except Exception:
-            pass
+    @commands.command(name="resetnick")
+    @commands.has_permissions(manage_nicknames=True)
+    @commands.bot_has_permissions(manage_nicknames=True)
+    async def resetnick_command(self, ctx: commands.Context, member: discord.Member):
+        """Reset a member's nickname back to their default username."""
+        if not await self.can_moderate(ctx, member):
+            return await ctx.reply("[ERROR] Hierarchy restriction: Cannot modify this member.", mention_author=False)
 
-    @purge_group.command(name="links")
-    @commands.has_permissions(manage_messages=True)
-    async def purge_links(self, ctx: commands.Context, amount: int = 50):
-        """Removes messages containing URLs."""
-        url_regex = re.compile(r"https?://\S+")
-        deleted = await ctx.channel.purge(limit=amount + 1, check=lambda m: bool(url_regex.search(m.content)))
-        msg = await ctx.send(embed=ZenithEmbed.success("Links Purged", f"Deleted **{len(deleted)}** link messages."))
-        await asyncio.sleep(4)
         try:
-            await msg.delete()
-        except Exception:
-            pass
+            await member.edit(nick=None, reason=f"Moderator: {ctx.author}")
+            await ctx.reply(f"[OK] Reset nickname for {member.mention}.", mention_author=False)
+        except Exception as e:
+            await ctx.reply(f"[ERROR] Failed to reset nickname: {e}", mention_author=False)
 
-    @purge_group.command(name="user")
-    @commands.has_permissions(manage_messages=True)
-    async def purge_user(self, ctx: commands.Context, target: discord.Member, amount: int = 50):
-        """Deletes messages sent exclusively by a specific user."""
-        deleted = await ctx.channel.purge(limit=amount + 1, check=lambda m: m.author.id == target.id)
-        msg = await ctx.send(embed=ZenithEmbed.success("User Messages Purged", f"Removed **{len(deleted)}** messages from {target.mention}."))
-        await asyncio.sleep(4)
-        try:
-            await msg.delete()
-        except Exception:
-            pass
+    @commands.command(name="voicekick", aliases=["vkick"])
+    @commands.has_permissions(move_members=True)
+    @commands.bot_has_permissions(move_members=True)
+    async def voicekick_command(self, ctx: commands.Context, member: discord.Member, *, reason: Optional[str] = "Voice kick"):
+        """Disconnect a member from their current voice channel."""
+        if not member.voice or not member.voice.channel:
+            return await ctx.reply(f"[ERROR] {member.mention} is not in any voice channel.", mention_author=False)
 
-    @purge_group.command(name="match")
-    @commands.has_permissions(manage_messages=True)
-    async def purge_match(self, ctx: commands.Context, text: str, amount: int = 50):
-        """Deletes messages containing a specific text string."""
-        deleted = await ctx.channel.purge(limit=amount + 1, check=lambda m: text.lower() in m.content.lower())
-        msg = await ctx.send(embed=ZenithEmbed.success("Match Purged", f"Removed **{len(deleted)}** messages matching `{text}`."))
-        await asyncio.sleep(4)
         try:
-            await msg.delete()
-        except Exception:
-            pass
+            await member.move_to(None, reason=f"{reason} (by {ctx.author})")
+            await ctx.reply(f"[OK] Disconnected {member.mention} from voice.", mention_author=False)
+        except Exception as e:
+            await ctx.reply(f"[ERROR] Failed to disconnect member: {e}", mention_author=False)
 
-    @purge_group.command(name="attachments", aliases=["files"])
-    @commands.has_permissions(manage_messages=True)
-    async def purge_attachments(self, ctx: commands.Context, amount: int = 50):
-        """Deletes messages containing uploaded file attachments."""
-        deleted = await ctx.channel.purge(limit=amount + 1, check=lambda m: bool(m.attachments))
-        msg = await ctx.send(embed=ZenithEmbed.success("Attachments Purged", f"Removed **{len(deleted)}** attachment messages."))
-        await asyncio.sleep(4)
+    @commands.command(name="voicemute", aliases=["vmute"])
+    @commands.has_permissions(mute_members=True)
+    @commands.bot_has_permissions(mute_members=True)
+    async def voicemute_command(self, ctx: commands.Context, member: discord.Member, *, reason: Optional[str] = "Voice mute"):
+        """Server-mute a member in voice channels."""
+        if not member.voice or not member.voice.channel:
+            return await ctx.reply(f"[ERROR] {member.mention} is not currently connected to voice.", mention_author=False)
+
         try:
-            await msg.delete()
-        except Exception:
-            pass
+            await member.edit(mute=True, reason=f"{reason} (by {ctx.author})")
+            await ctx.reply(f"[OK] Server muted {member.mention} in voice.", mention_author=False)
+        except Exception as e:
+            await ctx.reply(f"[ERROR] Failed to voice-mute member: {e}", mention_author=False)
+
+    @commands.command(name="voiceunmute", aliases=["vunmute"])
+    @commands.has_permissions(mute_members=True)
+    @commands.bot_has_permissions(mute_members=True)
+    async def voiceunmute_command(self, ctx: commands.Context, member: discord.Member):
+        """Remove server-mute from a member in voice channels."""
+        if not member.voice or not member.voice.channel:
+            return await ctx.reply(f"[ERROR] {member.mention} is not currently connected to voice.", mention_author=False)
+
+        try:
+            await member.edit(mute=False, reason=f"Voice unmute by {ctx.author}")
+            await ctx.reply(f"[OK] Unmuted {member.mention} in voice.", mention_author=False)
+        except Exception as e:
+            await ctx.reply(f"[ERROR] Failed to unmute member: {e}", mention_author=False)
+
+    @commands.command(name="voicedeafen", aliases=["vdeaf"])
+    @commands.has_permissions(deafen_members=True)
+    @commands.bot_has_permissions(deafen_members=True)
+    async def voicedeafen_command(self, ctx: commands.Context, member: discord.Member, *, reason: Optional[str] = "Voice deafen"):
+        """Server-deafen a member in voice channels."""
+        if not member.voice or not member.voice.channel:
+            return await ctx.reply(f"[ERROR] {member.mention} is not currently connected to voice.", mention_author=False)
+
+        try:
+            await member.edit(deafen=True, reason=f"{reason} (by {ctx.author})")
+            await ctx.reply(f"[OK] Server deafened {member.mention} in voice.", mention_author=False)
+        except Exception as e:
+            await ctx.reply(f"[ERROR] Failed to deafen member: {e}", mention_author=False)
+
+    @commands.command(name="voiceundeafen", aliases=["vundeaf"])
+    @commands.has_permissions(deafen_members=True)
+    @commands.bot_has_permissions(deafen_members=True)
+    async def voiceundeafen_command(self, ctx: commands.Context, member: discord.Member):
+        """Remove server-deafen from a member in voice channels."""
+        if not member.voice or not member.voice.channel:
+            return await ctx.reply(f"[ERROR] {member.mention} is not currently connected to voice.", mention_author=False)
+
+        try:
+            await member.edit(deafen=False, reason=f"Voice undeafen by {ctx.author}")
+            await ctx.reply(f"[OK] Undeafened {member.mention} in voice.", mention_author=False)
+        except Exception as e:
+            await ctx.reply(f"[ERROR] Failed to undeafen member: {e}", mention_author=False)
+
+    @commands.command(name="voicemove", aliases=["vmove"])
+    @commands.has_permissions(move_members=True)
+    @commands.bot_has_permissions(move_members=True)
+    async def voicemove_command(self, ctx: commands.Context, member: discord.Member, target_channel: discord.VoiceChannel):
+        """Move a member to another voice channel."""
+        if not member.voice or not member.voice.channel:
+            return await ctx.reply(f"[ERROR] {member.mention} is not currently in a voice channel.", mention_author=False)
+
+        try:
+            await member.move_to(target_channel, reason=f"Moved by {ctx.author}")
+            await ctx.reply(f"[OK] Moved {member.mention} to {target_channel.name}.", mention_author=False)
+        except Exception as e:
+            await ctx.reply(f"[ERROR] Failed to move member: {e}", mention_author=False)
+
+    @commands.command(name="voicemoveall", aliases=["vmoveall"])
+    @commands.has_permissions(move_members=True)
+    @commands.bot_has_permissions(move_members=True)
+    async def voicemoveall_command(self, ctx: commands.Context, source_channel: discord.VoiceChannel, target_channel: discord.VoiceChannel):
+        """Move all members from one voice channel to another."""
+        members = list(source_channel.members)
+        if not members:
+            return await ctx.reply(f"[INFO] No members found in {source_channel.name}.", mention_author=False)
+
+        moved = 0
+        for m in members:
+            try:
+                await m.move_to(target_channel, reason=f"Mass voice move by {ctx.author}")
+                moved += 1
+            except Exception:
+                pass
+
+        await ctx.reply(f"[OK] Moved {moved}/{len(members)} members from {source_channel.name} to {target_channel.name}.", mention_author=False)
+
+    @channel_group.command(name="topic")
+    @commands.has_permissions(manage_channels=True)
+    @commands.bot_has_permissions(manage_channels=True)
+    async def ch_topic(self, ctx: commands.Context, channel: discord.TextChannel, *, topic: str):
+        """Set the topic of a text channel."""
+        try:
+            await channel.edit(topic=topic, reason=f"Topic set by {ctx.author}")
+            await ctx.reply(f"[OK] Updated topic for {channel.mention}.", mention_author=False)
+        except Exception as e:
+            await ctx.reply(f"[ERROR] Failed to update topic: {e}", mention_author=False)
+
+    @channel_group.command(name="nsfw")
+    @commands.has_permissions(manage_channels=True)
+    @commands.bot_has_permissions(manage_channels=True)
+    async def ch_nsfw(self, ctx: commands.Context, channel: Optional[discord.TextChannel] = None):
+        """Toggle NSFW status on a text channel."""
+        target = channel or ctx.channel
+        new_state = not target.is_nsfw()
+        try:
+            await target.edit(nsfw=new_state, reason=f"NSFW toggled by {ctx.author}")
+            await ctx.reply(f"[OK] Channel {target.mention} is now {'NSFW marked' if new_state else 'SFW'}.", mention_author=False)
+        except Exception as e:
+            await ctx.reply(f"[ERROR] Failed to toggle NSFW: {e}", mention_author=False)
+
+    @channel_group.command(name="sync")
+    @commands.has_permissions(manage_channels=True)
+    @commands.bot_has_permissions(manage_channels=True)
+    async def ch_sync(self, ctx: commands.Context, channel: Optional[discord.TextChannel] = None):
+        """Sync channel permissions with its parent category."""
+        target = channel or ctx.channel
+        if not target.category:
+            return await ctx.reply(f"[ERROR] {target.mention} is not inside a category.", mention_author=False)
+
+        try:
+            await target.sync_permissions(reason=f"Permissions synced by {ctx.author}")
+            await ctx.reply(f"[OK] Permissions for {target.mention} synced with category `{target.category.name}`.", mention_author=False)
+        except Exception as e:
+            await ctx.reply(f"[ERROR] Failed to sync permissions: {e}", mention_author=False)
 
 
 async def setup(bot: commands.Bot):

@@ -248,6 +248,98 @@ class Tickets(commands.Cog):
         await ctx.channel.set_permissions(member, overwrite=None)
         await ctx.reply(embed=ZenithEmbed.success("Member Removed", f"Revoked access for {member.mention}."), mention_author=False)
 
+    @ticket_group.command(name="close")
+    @commands.has_permissions(manage_channels=True)
+    async def ticket_close(self, ctx: commands.Context, *, reason: Optional[str] = "Resolved"):
+        """Close and archive the current ticket channel."""
+        row = await db.fetchrow("SELECT user_id FROM active_tickets WHERE ticket_channel_id = ?", ctx.channel.id)
+        if not row:
+            return await ctx.reply("[ERROR] This command can only be executed inside an active ticket channel.", mention_author=False)
+
+        await ctx.reply(f"[INFO] Ticket closing in 5 seconds. Reason: `{reason}`...", mention_author=False)
+        await asyncio.sleep(5)
+        await db.execute("DELETE FROM active_tickets WHERE ticket_channel_id = ?", ctx.channel.id)
+        try:
+            await ctx.channel.delete(reason=f"Closed by {ctx.author}: {reason}")
+        except Exception:
+            pass
+
+    @ticket_group.command(name="claim")
+    @commands.has_permissions(manage_channels=True)
+    async def ticket_claim_cmd(self, ctx: commands.Context):
+        """Claim ownership of the active ticket as support staff."""
+        row = await db.fetchrow("SELECT user_id FROM active_tickets WHERE ticket_channel_id = ?", ctx.channel.id)
+        if not row:
+            return await ctx.reply("[ERROR] Not an active ticket channel.", mention_author=False)
+
+        await db.execute("UPDATE active_tickets SET claimed_by = ? WHERE ticket_channel_id = ?", ctx.author.id, ctx.channel.id)
+        await ctx.reply(f"[OK] Ticket claimed by {ctx.author.mention}.", mention_author=False)
+
+    @ticket_group.command(name="unclaim")
+    @commands.has_permissions(manage_channels=True)
+    async def ticket_unclaim_cmd(self, ctx: commands.Context):
+        """Release staff claim on the active ticket."""
+        row = await db.fetchrow("SELECT user_id FROM active_tickets WHERE ticket_channel_id = ?", ctx.channel.id)
+        if not row:
+            return await ctx.reply("[ERROR] Not an active ticket channel.", mention_author=False)
+
+        await db.execute("UPDATE active_tickets SET claimed_by = NULL WHERE ticket_channel_id = ?", ctx.channel.id)
+        await ctx.reply("[OK] Ticket claim released back to general support.", mention_author=False)
+
+    @ticket_group.command(name="rename")
+    @commands.has_permissions(manage_channels=True)
+    async def ticket_rename_cmd(self, ctx: commands.Context, *, new_name: str):
+        """Rename the current ticket channel."""
+        row = await db.fetchrow("SELECT user_id FROM active_tickets WHERE ticket_channel_id = ?", ctx.channel.id)
+        if not row:
+            return await ctx.reply("[ERROR] Not an active ticket channel.", mention_author=False)
+
+        clean = new_name.lower().replace(" ", "-")[:32]
+        await ctx.channel.edit(name=clean, reason=f"Renamed by {ctx.author}")
+        await ctx.reply(f"[OK] Ticket renamed to `{clean}`.", mention_author=False)
+
+    @ticket_group.command(name="transcript")
+    @commands.has_permissions(manage_channels=True)
+    async def ticket_transcript_cmd(self, ctx: commands.Context):
+        """Export a text transcript of all messages in the ticket."""
+        lines = [f"=== TRANSCRIPT: #{ctx.channel.name} ==="]
+        lines.append(f"Exported By: {ctx.author} ({ctx.author.id})")
+        lines.append(f"Exported At: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}\n" + ("=" * 50) + "\n")
+
+        async for msg in ctx.channel.history(limit=1000, oldest_first=True):
+            lines.append(f"[{msg.created_at.strftime('%Y-%m-%d %H:%M:%S')}] {msg.author} ({msg.author.id}): {msg.clean_content}")
+
+        buffer = io.BytesIO("\n".join(lines).encode("utf-8"))
+        file = discord.File(buffer, filename=f"transcript-{ctx.channel.name}.txt")
+        await ctx.reply(content="[OK] Transcript generated successfully.", file=file, mention_author=False)
+
+    @ticket_group.command(name="topic")
+    @commands.has_permissions(manage_channels=True)
+    async def ticket_topic_cmd(self, ctx: commands.Context, *, topic: str):
+        """Set the support inquiry topic for this ticket."""
+        await ctx.channel.edit(topic=topic[:1000], reason=f"Topic set by {ctx.author}")
+        await ctx.reply(f"[OK] Ticket topic set to: `{topic}`", mention_author=False)
+
+    @ticket_group.command(name="list")
+    @commands.has_permissions(manage_channels=True)
+    async def ticket_list_cmd(self, ctx: commands.Context):
+        """List all active open support tickets."""
+        rows = await db.fetch("SELECT ticket_channel_id, user_id, claimed_by FROM active_tickets WHERE guild_id = ?", ctx.guild.id)
+        if not rows:
+            return await ctx.reply("[INFO] No active support tickets open.", mention_author=False)
+
+        desc = []
+        for r in rows:
+            claimer = f"Claimed by <@{r['claimed_by']}>" if r['claimed_by'] else "Unclaimed"
+            desc.append(f"• <#{r['ticket_channel_id']}> | User: <@{r['user_id']}> | `{claimer}`")
+
+        embed = discord.Embed(
+            title=f"[ACTIVE TICKETS] {ctx.guild.name} ({len(rows)})",
+            description="\n".join(desc),
+            color=0x0F0F13
+        )
+        await ctx.reply(embed=embed, mention_author=False)
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Tickets(bot))

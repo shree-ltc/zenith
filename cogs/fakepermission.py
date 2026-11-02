@@ -274,6 +274,48 @@ class FakePermission(commands.Cog):
         embed.set_footer(text="Zenith Security | Developed by Shree")
         await ctx.send(embed=embed)
 
+    @fp_group.command(name="actions", aliases=["listactions"])
+    @commands.guild_only()
+    async def fp_actions(self, ctx: commands.Context):
+        """List all actions configurable under the fake permission matrix."""
+        lines = [f"• `{a}`" for a in ALLOWED_ACTIONS]
+        embed = discord.Embed(
+            title="[FP ACTIONS MATRIX]",
+            description="\n".join(lines),
+            color=ACCENT_COLOR
+        )
+        await ctx.send(embed=embed)
+
+    @fp_group.command(name="resetall")
+    @commands.guild_only()
+    async def fp_resetall(self, ctx: commands.Context):
+        """Purge all daily usage records across the entire server."""
+        if not await is_authorized_admin(ctx.author.id, ctx.guild, self.bot):
+            return await ctx.send(embed=discord.Embed(title="[ACCESS DENIED]", description="Restricted to Server Owner.", color=ACCENT_COLOR))
+
+        await db.execute("DELETE FROM fp_usage WHERE guild_id = ?", ctx.guild.id)
+        await ctx.send(embed=discord.Embed(title="[OK] Usage Purged", description="Reset all moderation quota counters for all members.", color=ACCENT_COLOR))
+
+    @fp_group.command(name="test")
+    @commands.guild_only()
+    async def fp_test_cmd(self, ctx: commands.Context, member: discord.Member, action: str):
+        """Test whether a member has authorization to execute an action."""
+        action_clean = action.lower().strip()
+        role_id = await self._get_fp_role_id(ctx.guild.id)
+        role = ctx.guild.get_role(role_id) if role_id else None
+
+        has_role = role in member.roles if role else False
+        used = await self._get_usage(ctx.guild.id, member.id, action_clean)
+        limit = await self._get_limit(ctx.guild.id, action_clean)
+        can_exec = has_role and (limit == 0 or used < limit)
+
+        embed = discord.Embed(
+            title=f"[FP AUDIT] {member.display_name} -> {action_clean}",
+            description=f"Authorized: **{'YES' if can_exec else 'NO'}**\n• Holds FP Role: `{'Yes' if has_role else 'No'}`\n• Quota Used: `{used} / {limit or '∞'}`",
+            color=ACCENT_COLOR
+        )
+        await ctx.send(embed=embed)
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(FakePermission(bot))

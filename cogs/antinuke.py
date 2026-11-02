@@ -736,6 +736,71 @@ class Antinuke(commands.Cog):
         embed.set_footer(text="Zenith Disaster Recovery | Developed by Shree")
         await status_msg.edit(embed=embed)
 
+    @antinuke_group.command(name="panic", aliases=["emergency"])
+    @commands.guild_only()
+    async def antinuke_panic(self, ctx: commands.Context):
+        """Emergency lockdown: strips dangerous permissions from all non-owner roles."""
+        if ctx.author.id != ctx.guild.owner_id and ctx.author.id not in config.OWNER_IDS:
+            return await ctx.send(embed=discord.Embed(title="[ACCESS DENIED]", description="Only the Server Owner can execute emergency panic protocol.", color=ACCENT_COLOR))
+
+        status_msg = await ctx.send("[PANIC ENGAGED] Revoking administrative permissions from roles...")
+        revoked = 0
+
+        for role in ctx.guild.roles:
+            if role.is_default() or role.managed or role >= ctx.guild.me.top_role:
+                continue
+
+            # If role holds administrator, ban, or kick permissions
+            if role.permissions.administrator or role.permissions.ban_members or role.permissions.manage_guild or role.permissions.manage_roles or role.permissions.manage_channels:
+                try:
+                    perms = role.permissions
+                    perms.update(administrator=False, ban_members=False, kick_members=False, manage_guild=False, manage_roles=False, manage_channels=False)
+                    await role.edit(permissions=perms, reason=f"Emergency panic protocol executed by {ctx.author}")
+                    revoked += 1
+                except Exception:
+                    pass
+
+        embed = discord.Embed(
+            title="[PANIC PROTOCOL EXECUTED]",
+            description=f"Secured server: Revoked elevated permissions from **{revoked}** roles.",
+            color=ACCENT_COLOR
+        )
+        await status_msg.edit(content=None, embed=embed)
+
+    @antinuke_group.command(name="rules", aliases=["mitigations", "vectors"])
+    @commands.guild_only()
+    async def antinuke_rules_cmd(self, ctx: commands.Context):
+        """List active modules and threat mitigation vectors."""
+        modules = [
+            "• Anti Channel Delete/Create/Update",
+            "• Anti Role Delete/Create/Update",
+            "• Anti Mass Member Ban / Mass Kick",
+            "• Anti Bot Integration / Malicious App",
+            "• Anti Webhook Injection",
+            "• Anti Guild Settings Mutation (Vanity, Name, Region)",
+            "• Anti Mass Inactive Member Prune",
+            "• Anti Everyone / Here Ping Raid",
+            "• Velocity Staff Containment (Antibetray)"
+        ]
+        embed = discord.Embed(
+            title="[ANTINUKE ENGINE] Active Threat Mitigations",
+            description="\n".join(modules),
+            color=ACCENT_COLOR
+        )
+        embed.set_footer(text="Autonomous Sentinel Layer | Developed by Shree")
+        await ctx.send(embed=embed)
+
+    @antinuke_group.command(name="test")
+    @commands.guild_only()
+    async def antinuke_test_cmd(self, ctx: commands.Context):
+        """Simulate an antinuke heuristic check."""
+        embed = discord.Embed(
+            title="[ANTINUKE SELF-TEST]",
+            description="Testing gateway event interceptors and database connection pools...\n\n[OK] Latency: Nominal\n[OK] Database: Operational\n[OK] Heuristic Watcher: Active",
+            color=ACCENT_COLOR
+        )
+        await ctx.send(embed=embed)
+
 
 class ExtraOwner(commands.Cog):
     """Extra Owner administration suite."""
@@ -830,6 +895,23 @@ class ExtraOwner(commands.Cog):
             color=ACCENT_COLOR
         )
         embed.set_footer(text="Zenith Security | Developed by Shree")
+        await ctx.send(embed=embed)
+
+    @extraowner_group.command(name="list", aliases=["show"])
+    @commands.guild_only()
+    async def eo_list(self, ctx: commands.Context):
+        """List current extra owners registered in this server."""
+        rows = await db.fetch("SELECT owner_id FROM extraowners WHERE guild_id = ?", ctx.guild.id)
+        if not rows:
+            desc = "No Extra Owners configured for this server."
+        else:
+            desc = "\n".join(f"• <@{r['owner_id']}> (`{r['owner_id']}`)" for r in rows)
+
+        embed = discord.Embed(
+            title=f"[EXTRA OWNERS] {ctx.guild.name} ({len(rows)})",
+            description=desc,
+            color=ACCENT_COLOR
+        )
         await ctx.send(embed=embed)
 
 

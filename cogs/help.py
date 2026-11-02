@@ -32,25 +32,85 @@ CATEGORY_MAPPING = {
         "description": "Virtual moderator permissions and daily quotas",
         "cogs": ["FakePermission"]
     },
-    "roles": {
-        "label": "Role Management",
-        "description": "Role editing, toggling, and mass role operations",
-        "cogs": ["Role"]
-    },
     "moderation": {
-        "label": "Moderation",
-        "description": "Bans, kicks, timeouts, warnings, locks, and purges",
-        "cogs": ["Moderation"]
+        "label": "Moderation & Cases",
+        "description": "Bans, kicks, timeouts, warnings, locks, cases, and purges",
+        "cogs": ["Moderation", "Cases", "Purge"]
+    },
+    "roles": {
+        "label": "Role Suite & Reaction Roles",
+        "description": "Role editing, mass assignment, autoroles, and reaction roles",
+        "cogs": ["Role", "Autorole", "ReactionRole"]
     },
     "automod": {
         "label": "Automod",
         "description": "Anti-spam, link filters, invite blocks, and caps",
         "cogs": ["Automod"]
     },
+    "automation": {
+        "label": "Automation & Custom Tags",
+        "description": "Tags, autoresponder triggers, autoreactions, and sticky messages",
+        "cogs": ["Tags", "Autoresponder", "Autoreact", "StickyMessage"]
+    },
+    "ignore": {
+        "label": "Ignore Controls",
+        "description": "Blacklist channels, commands, and users with bypass rules",
+        "cogs": ["Ignore"]
+    },
+    "tracker": {
+        "label": "Invite & Stats Tracker",
+        "description": "Invite attribution, message counters, and live VC stats",
+        "cogs": ["Tracker", "ServerStats"]
+    },
     "music": {
         "label": "Music",
         "description": "High-fidelity audio streaming, queue, and autoplay",
         "cogs": ["Music"]
+    },
+    "voice": {
+        "label": "Voice Lounges & Moderation",
+        "description": "Join-to-create temp channels and mass voice controls",
+        "cogs": ["Voice", "VoiceActivity"]
+    },
+    "leveling": {
+        "label": "Leveling & XP",
+        "description": "Experience ranks, progress bars, and level role rewards",
+        "cogs": ["Leveling"]
+    },
+    "economy": {
+        "label": "Economy & Market",
+        "description": "Currency, banking, jobs, shifts, shop, inventory, and casino",
+        "cogs": ["Economy"]
+    },
+    "games": {
+        "label": "Games & Challenges",
+        "description": "Tic-Tac-Toe, Blackjack, Connect-4, Fastclick, Wordle, and Typeracer",
+        "cogs": ["Games"]
+    },
+    "birthdays": {
+        "label": "Birthdays Calendar",
+        "description": "Birthday registrations, role assignments, and announcements",
+        "cogs": ["Birthdays"]
+    },
+    "suggestions": {
+        "label": "Suggestions System",
+        "description": "Community ideas, voting, and staff decision management",
+        "cogs": ["Suggestions"]
+    },
+    "starboard": {
+        "label": "Starboard",
+        "description": "Community-voted message showcase pins",
+        "cogs": ["Starboard"]
+    },
+    "profiles": {
+        "label": "Social Profiles & Rep",
+        "description": "Custom biographies, reputation points, and marriage",
+        "cogs": ["Profiles"]
+    },
+    "embeds": {
+        "label": "Custom Embed Builder",
+        "description": "Build, send, and decompile rich JSON embeds",
+        "cogs": ["Embeds"]
     },
     "tickets": {
         "label": "Tickets",
@@ -58,39 +118,19 @@ CATEGORY_MAPPING = {
         "cogs": ["Tickets"]
     },
     "server": {
-        "label": "Server Tools",
-        "description": "Channel locks, slowmode, and server configs",
-        "cogs": ["Server"]
+        "label": "Server Tools & Logs",
+        "description": "Channel nuke, lockdowns, dehoist, and audit logs",
+        "cogs": ["Server", "Logs"]
     },
-    "voice": {
-        "label": "Voice Channels",
-        "description": "Dynamic join-to-create temporary voice lounges",
-        "cogs": ["Voice"]
-    },
-    "economy": {
-        "label": "Economy",
-        "description": "Currency, banking, jobs, shifts, and leaderboard",
-        "cogs": ["Economy"]
-    },
-    "utility": {
-        "label": "Utility",
-        "description": "Server, member, avatar, and system lookups",
-        "cogs": ["Utility"]
-    },
-    "welcome": {
-        "label": "Welcome",
-        "description": "Member greetings and join autoroles",
-        "cogs": ["Welcome"]
+    "general": {
+        "label": "General, Lookup & Highlights",
+        "description": "Reminders, highlights, whois, channelinfo, and text tools",
+        "cogs": ["General", "Highlights", "Lookup", "TextTools", "Utility"]
     },
     "giveaways": {
-        "label": "Giveaways",
-        "description": "Community prize drawings and timed giveaways",
-        "cogs": ["Giveaways"]
-    },
-    "fun": {
-        "label": "Fun & Games",
-        "description": "Mini-games, coinflips, and trivia",
-        "cogs": ["Fun"]
+        "label": "Giveaways, Fun & AFK",
+        "description": "Prize drawings, trivia, 8ball, coinflips, and AFK status",
+        "cogs": ["Giveaways", "Fun", "AFK"]
     },
 }
 
@@ -111,7 +151,7 @@ class HelpSelect(ui.Select):
         for key, data in CATEGORY_MAPPING.items():
             options.append(
                 discord.SelectOption(
-                    label=data["label"],
+                    label=data["label"][:100],
                     description=data["description"][:100],
                     value=key
                 )
@@ -203,18 +243,23 @@ class Help(commands.Cog):
         )
 
         embed.add_field(
-            name="Security & Governance",
+            name="Security & Shield",
             value="`Antinuke`, `Mainrole`, `AntiBetray`, `FakePermission`, `Automod`",
             inline=False
         )
         embed.add_field(
-            name="Administration & Roles",
-            value="`Moderation`, `Roles`, `Server`, `Tickets`, `Server Logs`",
+            name="Governance & Administration",
+            value="`Moderation`, `Cases`, `Roles`, `Autorole`, `ReactionRole`, `Ignore`, `Server Logs`",
             inline=False
         )
         embed.add_field(
-            name="Engagement & Media",
-            value="`Music`, `Economy`, `Utility`, `Voice`, `Giveaways`, `Welcome`, `Fun`, `AFK`",
+            name="Automation & Tracking",
+            value="`Autoresponder`, `Autoreact`, `StickyMessage`, `Tracker`, `ServerStats`, `Embeds`, `Tickets`",
+            inline=False
+        )
+        embed.add_field(
+            name="Community, Gaming & Media",
+            value="`Music`, `Leveling`, `Economy`, `Games`, `Birthdays`, `Suggestions`, `Starboard`, `Profiles`",
             inline=False
         )
 

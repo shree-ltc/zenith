@@ -194,6 +194,119 @@ class Voice(commands.Cog):
             await target.move_to(None, reason="Zenith Voice: Ejected by room owner.")
         await ctx.reply(embed=ZenithEmbed.success("Member Ejected", f"{target.mention} has been removed and blocked from your room."), mention_author=False)
 
+    @voice_group.command(name="hide")
+    async def voice_hide(self, ctx: commands.Context):
+        """Make your temporary voice channel invisible to @everyone."""
+        ch = await self._get_voice_room(ctx)
+        if not ch:
+            return
+        await ch.set_permissions(ctx.guild.default_role, view_channel=False)
+        await ctx.reply(embed=ZenithEmbed.success("Room Hidden", "Your voice channel is now hidden from the public channel list."), mention_author=False)
+
+    @voice_group.command(name="unhide")
+    async def voice_unhide(self, ctx: commands.Context):
+        """Make your temporary voice channel visible to @everyone."""
+        ch = await self._get_voice_room(ctx)
+        if not ch:
+            return
+        await ch.set_permissions(ctx.guild.default_role, view_channel=None)
+        await ctx.reply(embed=ZenithEmbed.success("Room Visible", "Your voice channel is now visible on the server list."), mention_author=False)
+
+    @voice_group.command(name="bitrate")
+    async def voice_bitrate(self, ctx: commands.Context, kbps: int):
+        """Adjust the audio quality bitrate of your voice room."""
+        ch = await self._get_voice_room(ctx)
+        if not ch:
+            return
+        max_bitrate = int(ctx.guild.bitrate_limit / 1000)
+        if kbps < 8 or kbps > max_bitrate:
+            return await ctx.reply(f"[ERROR] Bitrate must be between 8 and {max_bitrate} kbps.", mention_author=False)
+
+        await ch.edit(bitrate=kbps * 1000)
+        await ctx.reply(embed=ZenithEmbed.success("Bitrate Adjusted", f"Channel audio quality set to **{kbps} kbps**."), mention_author=False)
+
+    @voice_group.command(name="claim")
+    async def voice_claim(self, ctx: commands.Context):
+        """Claim ownership of a room if the original creator left."""
+        if not ctx.author.voice or not ctx.author.voice.channel:
+            return await ctx.reply("[ERROR] You must be inside a voice channel.", mention_author=False)
+
+        ch = ctx.author.voice.channel
+        row = await db.fetchrow("SELECT owner_id FROM tempvc_active WHERE channel_id = ?", ch.id)
+        if not row:
+            return await ctx.reply("[ERROR] This is not an active temporary voice channel.", mention_author=False)
+
+        current_owner = ctx.guild.get_member(row["owner_id"])
+        if current_owner and current_owner in ch.members:
+            return await ctx.reply(f"[ERROR] The original owner ({current_owner.mention}) is still in the room.", mention_author=False)
+
+        await db.execute("UPDATE tempvc_active SET owner_id = ? WHERE channel_id = ?", ctx.author.id, ch.id)
+        await ch.set_permissions(ctx.author, connect=True, speak=True, manage_channels=True, move_members=True)
+        await ctx.reply(embed=ZenithEmbed.success("Room Claimed", f"You are now the owner of {ch.mention}."), mention_author=False)
+
+    @voice_group.command(name="transfer")
+    async def voice_transfer(self, ctx: commands.Context, member: discord.Member):
+        """Transfer room ownership to another member in the channel."""
+        ch = await self._get_voice_room(ctx)
+        if not ch:
+            return
+        if member not in ch.members:
+            return await ctx.reply(f"[ERROR] {member.mention} is not currently in this voice room.", mention_author=False)
+
+        await db.execute("UPDATE tempvc_active SET owner_id = ? WHERE channel_id = ?", member.id, ch.id)
+        await ch.set_permissions(member, connect=True, speak=True, manage_channels=True, move_members=True)
+        await ctx.reply(embed=ZenithEmbed.success("Ownership Transferred", f"Transferred room ownership to {member.mention}."), mention_author=False)
+
+    @voice_group.command(name="status", aliases=["info"])
+    async def voice_status(self, ctx: commands.Context):
+        """View settings and status of the current voice channel."""
+        ch = await self._get_voice_room(ctx)
+        if not ch:
+            return
+        row = await db.fetchrow("SELECT owner_id FROM tempvc_active WHERE channel_id = ?", ch.id)
+        owner = ctx.guild.get_member(row["owner_id"]) if row else None
+
+        embed = discord.Embed(
+            title=f"[VOICE STATUS] {ch.name}",
+            color=0x0F0F13
+        )
+        embed.add_field(name="Owner", value=f"{owner.mention if owner else 'Unknown'}", inline=True)
+        embed.add_field(name="Capacity", value=f"{len(ch.members)}/{ch.user_limit or 'Unlimited'}", inline=True)
+        embed.add_field(name="Bitrate", value=f"{ch.bitrate // 1000} kbps", inline=True)
+        await ctx.reply(embed=embed, mention_author=False)
+
+    @voice_group.command(name="muteall")
+    async def voice_muteall(self, ctx: commands.Context):
+        """Mute all members in your voice room."""
+        ch = await self._get_voice_room(ctx)
+        if not ch:
+            return
+        count = 0
+        for m in ch.members:
+            if m.id != ctx.author.id:
+                try:
+                    await m.edit(mute=True, reason=f"Mute all by {ctx.author}")
+                    count += 1
+                except Exception:
+                    pass
+        await ctx.reply(embed=ZenithEmbed.success("Mute All Complete", f"Muted **{count}** occupants in room."), mention_author=False)
+
+    @voice_group.command(name="unmuteall")
+    async def voice_unmuteall(self, ctx: commands.Context):
+        """Unmute all members in your voice room."""
+        ch = await self._get_voice_room(ctx)
+        if not ch:
+            return
+        count = 0
+        for m in ch.members:
+            if m.id != ctx.author.id:
+                try:
+                    await m.edit(mute=False, reason=f"Unmute all by {ctx.author}")
+                    count += 1
+                except Exception:
+                    pass
+        await ctx.reply(embed=ZenithEmbed.success("Unmute All Complete", f"Unmuted **{count}** occupants in room."), mention_author=False)
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Voice(bot))

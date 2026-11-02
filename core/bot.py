@@ -19,6 +19,14 @@ from core.logging import info, warn, error, success, logger
 
 async def determine_prefix(bot: "ZenithBot", message: discord.Message) -> list[str]:
     """Retrieves custom guild prefix from database or falls back to default prefix."""
+    user_id = message.author.id if message.author else 0
+    is_np = getattr(bot, "is_noprefix", None)
+    if is_np and is_np(user_id):
+        if not message.guild:
+            return commands.when_mentioned_or(config.DEFAULT_PREFIX, "")(bot, message)
+        prefix = await db.get_prefix(message.guild.id)
+        return commands.when_mentioned_or(prefix, "")(bot, message)
+
     if not message.guild:
         return commands.when_mentioned_or(config.DEFAULT_PREFIX)(bot, message)
 
@@ -56,6 +64,10 @@ class ZenithBot(commands.AutoShardedBot):
         self.session: Optional[aiohttp.ClientSession] = None
         self.launch_time: float = time.time()
         self.db = db
+        self.noprefix_users: set[int] = set()
+
+    def is_noprefix(self, user_id: int) -> bool:
+        return user_id in self.noprefix_users or user_id in config.OWNER_IDS
 
     async def setup_hook(self) -> None:
         """Executes asynchronous setup before the bot connects to Discord gateway."""

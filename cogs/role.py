@@ -397,6 +397,134 @@ class Role(commands.Cog):
         """Assign a role to all bot accounts in the server."""
         await self._safe_mass_role(ctx, role, lambda m: m.bot, "add", "Bot Accounts")
 
+    @role_group.command(name="mentionable", aliases=["mention"])
+    @commands.guild_only()
+    async def role_mentionable(self, ctx: commands.Context, role: discord.Role, mentionable: Optional[bool] = None):
+        """Toggle or set whether a role is mentionable by everyone."""
+        if not await self._validate_role_hierarchy(ctx, role):
+            return
+
+        new_val = not role.mentionable if mentionable is None else mentionable
+        try:
+            await role.edit(mentionable=new_val, reason=f"Modified by {ctx.author}")
+            state_str = "mentionable" if new_val else "not mentionable"
+            await ctx.send(embed=discord.Embed(
+                title="[OK] Role Updated",
+                description=f"Role {role.mention} is now `{state_str}`.",
+                color=ACCENT_COLOR
+            ))
+        except Exception as e:
+            await ctx.send(embed=discord.Embed(title="[ERROR]", description=f"Failed to update role: {e}", color=ACCENT_COLOR))
+
+    @role_group.command(name="duplicate", aliases=["clone"])
+    @commands.guild_only()
+    async def role_duplicate(self, ctx: commands.Context, role: discord.Role, *, new_name: Optional[str] = None):
+        """Clone an existing role's permissions and color."""
+        name = new_name or f"{role.name} Copy"
+        try:
+            new_role = await ctx.guild.create_role(
+                name=name,
+                permissions=role.permissions,
+                colour=role.colour,
+                hoist=role.hoist,
+                mentionable=role.mentionable,
+                reason=f"Cloned from {role.name} by {ctx.author}"
+            )
+            await ctx.send(embed=discord.Embed(
+                title="[OK] Role Cloned",
+                description=f"Created {new_role.mention} copied from {role.mention}.",
+                color=ACCENT_COLOR
+            ))
+        except Exception as e:
+            await ctx.send(embed=discord.Embed(title="[ERROR]", description=f"Failed to clone role: {e}", color=ACCENT_COLOR))
+
+    @role_group.command(name="strip", aliases=["clearroles"])
+    @commands.guild_only()
+    async def role_strip(self, ctx: commands.Context, member: discord.Member):
+        """Remove all non-default roles from a member."""
+        if member.top_role >= ctx.author.top_role and ctx.author.id != ctx.guild.owner_id:
+            return await ctx.send(embed=discord.Embed(title="[HIERARCHY ERROR]", description="Cannot strip roles from members with equal or higher roles.", color=ACCENT_COLOR))
+
+        roles_to_remove = [r for r in member.roles if not r.is_default() and r < ctx.guild.me.top_role]
+        if not roles_to_remove:
+            return await ctx.send(embed=discord.Embed(title="[INFO]", description="No removable roles found on member.", color=ACCENT_COLOR))
+
+        try:
+            await member.remove_roles(*roles_to_remove, reason=f"Roles stripped by {ctx.author}")
+            await ctx.send(embed=discord.Embed(
+                title="[OK] Roles Stripped",
+                description=f"Removed **{len(roles_to_remove)}** roles from {member.mention}.",
+                color=ACCENT_COLOR
+            ))
+        except Exception as e:
+            await ctx.send(embed=discord.Embed(title="[ERROR]", description=f"Failed to strip roles: {e}", color=ACCENT_COLOR))
+
+    @role_group.command(name="members", aliases=["inrole"])
+    @commands.guild_only()
+    async def role_members(self, ctx: commands.Context, role: discord.Role):
+        """List members who have this role."""
+        members = role.members
+        if not members:
+            return await ctx.send(embed=discord.Embed(title="[INFO]", description=f"No members possess {role.mention}.", color=ACCENT_COLOR))
+
+        desc = ", ".join(m.mention for m in members[:40])
+        if len(members) > 40:
+            desc += f" *(+{len(members) - 40} more)*"
+
+        embed = discord.Embed(
+            title=f"[ROLE MEMBERS] @{role.name} ({len(members)})",
+            description=desc,
+            color=ACCENT_COLOR
+        )
+        await ctx.send(embed=embed)
+
+    @role_group.command(name="permissions", aliases=["perms"])
+    @commands.guild_only()
+    async def role_permissions(self, ctx: commands.Context, role: discord.Role):
+        """Audit granted permissions on a role."""
+        granted = [name.replace("_", " ").title() for name, value in role.permissions if value]
+        desc = ", ".join(granted) if granted else "No permissions granted"
+
+        embed = discord.Embed(
+            title=f"[ROLE PERMISSIONS] @{role.name} ({len(granted)})",
+            description=desc,
+            color=ACCENT_COLOR
+        )
+        await ctx.send(embed=embed)
+
+    @role_group.command(name="position", aliases=["pos"])
+    @commands.guild_only()
+    async def role_position(self, ctx: commands.Context, role: discord.Role, new_position: int):
+        """Move a role to a specific hierarchy index."""
+        if not await self._validate_role_hierarchy(ctx, role):
+            return
+
+        try:
+            await role.edit(position=new_position, reason=f"Moved by {ctx.author}")
+            await ctx.send(embed=discord.Embed(
+                title="[OK] Role Moved",
+                description=f"Role {role.mention} position changed to `{new_position}`.",
+                color=ACCENT_COLOR
+            ))
+        except Exception as e:
+            await ctx.send(embed=discord.Embed(title="[ERROR]", description=f"Failed to move role: {e}", color=ACCENT_COLOR))
+
+    @role_group.command(name="info")
+    @commands.guild_only()
+    async def role_info_cmd(self, ctx: commands.Context, role: discord.Role):
+        """View metadata and settings for a role."""
+        embed = discord.Embed(
+            title=f"[ROLE INFO] @{role.name}",
+            color=role.colour if role.colour.value != 0 else ACCENT_COLOR
+        )
+        embed.add_field(name="Role ID", value=f"`{role.id}`", inline=True)
+        embed.add_field(name="Color", value=f"`{str(role.colour).upper()}`", inline=True)
+        embed.add_field(name="Members", value=f"`{len(role.members)}`", inline=True)
+        embed.add_field(name="Position", value=f"`{role.position}`", inline=True)
+        embed.add_field(name="Hoisted", value="Yes" if role.hoist else "No", inline=True)
+        embed.add_field(name="Mentionable", value="Yes" if role.mentionable else "No", inline=True)
+        await ctx.send(embed=embed)
+
     # ---------------------------------------------------------
     # MASS ROLE REMOVAL (RROLE / RROLEALL / RROLEHUMANS / RROLEBOTS)
     # ---------------------------------------------------------

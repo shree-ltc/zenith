@@ -7,11 +7,13 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-success?style=flat-square)](LICENSE)
 [![Discord](https://img.shields.io/badge/Discord-shree.ltc-5865F2?style=flat-square&logo=discord&logoColor=white)](https://discord.com/users/1465912900710305822)
 
-Zenith is an enterprise-grade, asynchronous Discord bot framework engineered for community protection, privilege escalation prevention, autonomous raid defense, and server administration. Built with `discord.py` 2.x, it integrates real-time audit log analysis, sub-millisecond memory caching, dual-engine database persistence (PostgreSQL + SQLite), and high-fidelity media streaming.
+Zenith is an enterprise-grade, asynchronous Discord bot framework engineered for community protection, privilege escalation prevention, autonomous raid defense, and server administration. Built on `discord.py` 2.x, it integrates real-time audit log analysis, sub-millisecond memory caching, dual-engine database persistence (PostgreSQL + SQLite), and high-fidelity media streaming.
+
+Zenith is equipped with **46 distinct feature modules**, providing **503 direct command endpoints** and **813 total invocable triggers** with a unified obsidian theme (`0x0F0F13`).
 
 ---
 
-## Core Systems
+## Core Systems & Highlights
 
 ### Mainrole Protection
 * **Privilege Guard**: Protects default `@everyone` and verified member roles from receiving dangerous administrative permissions (`administrator`, `manage_roles`, `manage_channels`, `ban_members`, `kick_members`, `moderate_members`, `manage_guild`, etc.).
@@ -31,18 +33,16 @@ Zenith is an enterprise-grade, asynchronous Discord bot framework engineered for
 * **Zero-Trust Moderation**: Allows guild owners to authorize staff roles to execute Zenith commands (`ban`, `kick`, `timeout`, `warn`, `lock`, `hide`, `purge`) without granting actual Discord permissions.
 * **Daily Action Quotas**: Configurable per-action daily limits to strictly prevent moderator abuse or compromised account mass-bans.
 
-### Complete Role Management Suite
-* **Interactive Toggling**: Assign or strip roles on users with strict hierarchy enforcement.
-* **Role Configuration**: Create, delete, rename, change color, and set hoist display.
-* **Safe Mass Operations**: Rate-limited bulk assignment and removal for all members, human accounts, or bot accounts (`role all`, `role humans`, `role bots`, `rroleall`, `rrolehumans`, `rrolebots`), strictly blocking mass assignments of dangerous roles.
+### Enterprise Automod
+* Granular filters for spam bursts, discord invites, external links, excessive capitalization, mass user mentions, emoji flooding, zalgo/corrupted text, dangerous file attachments, excessive newlines, and character length limits.
+* Whitelist overrides for trusted roles and channels, custom forbidden word matching, and centralized logging.
 
-### Enforcement & Moderation
-* **Sanctions**: Bans, softbans, kicks, timeouts, and persistent database warnings.
-* **Mass Actions**: Mass unban with progress tracking (`unbanall`).
-* **Channel Controls**: Lock/unlock and hide/unhide per channel or server-wide (`lockall`, `unlockall`, `hideall`, `unhideall`), and slowmode.
-* **Channel Maintenance**: Clean channel nuke re-creation and channel cloning.
-* **Emoji Utilities**: Steal and import custom emojis from external servers (`steal`).
-* **Purge Suite**: Target-specific message purging (bots, links, users, match strings, and attachments).
+### Purification Suite (Purge Engine)
+* High-velocity bulk cleanup with target-specific purges: `clearall`, `clearuser`, `clearbots`, `clearembeds`, `clearmentions`, `clearreactions`, `clearfiles`, `clearimages`, `clearemojis`, `clearcontains`, `clearinvites`, `clearlinks`, `clearwebhooks`, and `clearuntil`.
+
+### Complete Role Management Suite
+* Interactive role toggling, creation, renaming, color adjustment, hoist configuration, permission inspections, and role duplication.
+* Safe mass operations: Rate-limited bulk assignment and removal for all members, human accounts, or bot accounts (`role all`, `role humans`, `role bots`, `rrole all`, `rrole humans`, `rrole bots`).
 
 ### Audio & Streaming
 * **Lavalink Engine**: High-fidelity audio playback with seek, volume normalization, and queue management.
@@ -56,6 +56,7 @@ Zenith is an enterprise-grade, asynchronous Discord bot framework engineered for
 ### Prerequisites
 * Python 3.10+
 * Discord Bot Token with all Privileged Gateway Intents enabled (Message Content, Server Members, Presence) in the Discord Developer Portal.
+* Optional: Redis instance for high-throughput caching and PostgreSQL for multi-sharded deployments (defaults to local SQLite and memory cache).
 
 ### Quick Start
 
@@ -94,77 +95,60 @@ Zenith is an enterprise-grade, asynchronous Discord bot framework engineered for
 
 ---
 
-## Project Structure
+## Command Reference (503 Endpoints, 813 Triggers)
 
-```
-zenith/
-├── core/
-│   ├── bot.py             # Custom AutoShardedBot client and extension loader
-│   ├── config.py          # Typed environment settings loader
-│   ├── database.py        # Database abstraction (PostgreSQL / SQLite / Redis)
-│   ├── errors.py          # Global command error handling
-│   ├── logging.py         # Console formatter and rotating file logger
-│   └── security.py        # Permission validators and hierarchy checks
-├── ui/
-│   ├── colors.py          # UI color constants
-│   ├── embeds.py          # ZenithEmbed formatting helper
-│   └── views.py           # Paginator and confirmation views
-├── cogs/
-│   ├── mainrole.py        # Protection for @everyone and verified member roles
-│   ├── antinuke.py        # Anti-raid engine, snapshots, and extra owners
-│   ├── antibetray.py      # Rogue staff velocity detection and neutralization
-│   ├── fakepermission.py  # Virtual moderator permissions with daily quotas
-│   ├── role.py            # Individual role editing and safe mass role tools
-│   ├── automod.py         # Regex message scanner and burst limiter
-│   ├── moderation.py      # Sanctions, warnings, locks, and purges
-│   ├── tickets.py         # Support ticket panels and transcripts
-│   ├── voice.py           # Join-to-create temporary voice channels
-│   ├── welcome.py         # Member greetings and autoroles
-│   ├── economy.py         # Balances, work shifts, and leaderboards
-│   ├── server.py          # Channel nuke, lockdowns, and dehoist
-│   ├── utility.py         # User, server, avatar, and system lookups
-│   ├── logs.py            # Message edit/delete and member audit logs
-│   ├── giveaways.py       # Prize drawings with button entry
-│   ├── afk.py             # Away status and mention notifications
-│   ├── fun.py             # RPS, 8ball, coinflips, and quotes
-│   ├── music.py           # Lavalink audio streaming and autoplay
-│   ├── owner.py           # Hot-reloads, slash syncing, and eval
-│   └── help.py            # Categorized help menu
-├── requirements.txt
-├── .env.example
-├── .gitignore
-└── LICENSE
-```
-
----
-
-## Command Reference
-
-| Category | Primary Commands | Description |
-| :--- | :--- | :--- |
-| **Mainrole** | `mainrole add`, `mainrole remove`, `mainrole scan`, `mainrole show` | Protects core member roles from harmful permissions. |
-| **Security** | `antinuke enable`, `antinuke snapshot`, `antinuke serverrecovery`, `antinuke wl` | Real-time anti-raid protection and disaster recovery. |
-| **Anti-Betray** | `antibetray enable`, `antibetray set`, `antibetray punishment` | Rogue staff velocity detection and neutralization. |
-| **Fake Permissions** | `fp set`, `fp limit`, `fp limits`, `fp usage`, `fp reset` | Virtual mod permissions with daily execution quotas. |
-| **Roles** | `role add`, `role remove`, `role all`, `role humans`, `role bots`, `rrole` | Individual role toggling and safe mass assignment. |
-| **Moderation** | `ban`, `unban`, `softban`, `kick`, `timeout`, `warn`, `lockall`, `unbanall` | Member management and server lockdowns. |
-| **Automod** | `automod antispam`, `automod antilinks`, `automod antiinvites` | Filters spam, invites, and external links. |
-| **Tickets** | `ticket setup`, `ticket close`, `ticket claim`, `ticket add` | Private support channels with transcript export. |
-| **Voice** | `voice lock`, `voice unlock`, `voice rename`, `voice limit` | Dynamic join-to-create temporary channels. |
-| **Welcome** | `welcome channel`, `welcome message`, `autorole human` | Member greetings and initial role allocation. |
-| **Economy** | `balance`, `daily`, `work`, `deposit`, `withdraw`, `pay` | Virtual currency and banking mini-games. |
-| **Server** | `nuke`, `lockdown`, `unlockdown`, `dehoist`, `inrole` | Guild maintenance and administrative actions. |
-| **Utility** | `userinfo`, `serverinfo`, `avatar`, `botinfo`, `ping`, `snipe` | Information lookup and diagnostics. |
-| **Giveaways** | `giveaway start <duration> <winners> <prize>` | Timed community prize drawings. |
-| **Music** | `play`, `skip`, `pause`, `resume`, `queue`, `autoplay`, `seek`, `volume` | Audio streaming with Lavalink and smart autoplay. |
-| **AFK** | `afk [reason]` | Notifies users who mention you while away. |
-| **Developer** | `reloadall`, `sync`, `eval`, `prefix` | Maintenance and hot-reloading. |
+| Category | Endpoints | Example Triggers | Description |
+| :--- | :--- | :--- | :--- |
+| **Mainrole** | 5 | `mainrole add`, `mainrole remove`, `mainrole scan`, `mainrole show` | Protects core member roles from dangerous permissions. |
+| **Antinuke** | 20 | `antinuke enable`, `antinuke snapshot`, `antinuke serverrecovery`, `extraowner add` | Real-time anti-raid protection, snapshots, and recovery. |
+| **Anti-Betray** | 8 | `antibetray enable`, `antibetray threshold`, `antibetray punishment` | Rogue staff velocity detection and neutralization. |
+| **Fake Permissions**| 9 | `fp set`, `fp limit`, `fp limits`, `fp usage`, `fp reset` | Virtual mod permissions with daily quotas. |
+| **Automod** | 18 | `automod antispam`, `automod antilinks`, `automod words add` | Granular regex message scanner and burst limiter. |
+| **Moderation** | 22 | `ban`, `unban`, `softban`, `kick`, `timeout`, `warn`, `lockall`, `unbanall` | Sanctions, member management, and channel lockdowns. |
+| **Purge Engine** | 15 | `clear`, `clearuser`, `clearbots`, `clearembeds`, `clearlinks` | Target-specific high-velocity message purification. |
+| **Cases & Logs** | 11 | `case edit`, `case reason`, `case search`, `modlogs`, `banlist` | Persistent moderation action tracking and audit logging. |
+| **Roles** | 22 | `role add`, `role create`, `role all`, `role humans`, `rrole all` | Individual role management and bulk safe operations. |
+| **Tags** | 13 | `tag get`, `tag add`, `tag edit`, `tag raw`, `tag claim`, `tag alias` | Guild-scoped custom tags and snippet engine. |
+| **Highlights** | 4 | `highlight add`, `highlight remove`, `highlight list`, `highlight clear` | Personal keyword alerts with DM notifications. |
+| **Tickets** | 10 | `ticket setup`, `ticket close`, `ticket claim`, `ticket transcript` | Private support channels with transcript export. |
+| **Voice** | 15 | `voice setup`, `voice lock`, `voice rename`, `voice permit`, `voice limit` | Dynamic join-to-create temporary voice lounges. |
+| **Voice Activity**| 3 | `voiceactivity`, `voicetop`, `voicereset` | Automatic tracking of member voice time and leaderboards. |
+| **Music** | 14 | `play`, `skip`, `pause`, `queue`, `autoplay`, `volume`, `seek` | High-fidelity audio streaming and smart YouTube autoplay. |
+| **Economy** | 19 | `balance`, `daily`, `work`, `crime`, `rob`, `deposit`, `shop`, `slots` | Virtual currency, commerce, inventory, and mini-games. |
+| **Leveling** | 11 | `rank`, `levels`, `leveling channel`, `rewards add`, `setlevel` | Progression tracking, tiered role rewards, and leaderboards. |
+| **Giveaways** | 14 | `giveaway start`, `giveaway drop`, `giveaway reroll`, `gstart` | Timed community prize drawings with button entries. |
+| **Suggestions** | 9 | `suggest`, `suggestion channel`, `accept`, `deny`, `consider` | Community feedback lifecycle with voting and comments. |
+| **Starboard** | 9 | `starboard channel`, `threshold`, `selfstar`, `starboard emoji` | Message showcase engine with customizable threshold. |
+| **Sticky Messages**| 7 | `sticky add`, `sticky remove`, `sticky list`, `sticky edit` | Persistent message broadcaster pinned at bottom of channels. |
+| **Birthdays** | 9 | `birthday set`, `birthday upcoming`, `birthday channel`, `birthday role` | Automated member celebration engine and announcements. |
+| **Games** | 8 | `tictactoe`, `blackjack`, `guessnumber`, `connectfour`, `trivia` | Turn-based challenges, board games, and typing races. |
+| **Text Tools** | 17 | `mock`, `reverse`, `vaporwave`, `binary`, `morse`, `base64`, `rot13` | Ciphers, text transformations, hashing, and formatting. |
+| **Utility** | 16 | `userinfo`, `serverinfo`, `avatar`, `calc`, `snipe`, `editsnipe` | Diagnostics, mathematical calculations, and inspections. |
+| **Lookup** | 8 | `useravatar`, `serverbanner`, `servericon`, `membercount`, `roleinfo` | Dedicated asset lookup and permissions matrix. |
+| **Activity Tracker**| 8 | `invites`, `topinvites`, `messages`, `topmessages`, `invitebonus` | Gateway message count and invite link tracking. |
+| **Server Counters** | 6 | `stats channel`, `stats category`, `stats format`, `stats refresh` | Dynamic voice/text statistics counters in channel list. |
+| **Profiles** | 9 | `profile`, `setbio`, `rep`, `marry`, `divorce`, `badges`, `reptop` | Social profiles, user biographies, and relationships. |
+| **AFK Engine** | 3 | `afk`, `afklist`, `afkclear` | Away status broadcasting and mention alerts. |
+| **Welcome & Leave**| 6 | `welcome channel`, `welcome message`, `leave channel`, `welcome test` | Custom arrival/departure messages and cards. |
+| **Autoroles** | 8 | `autorole humans add`, `autorole bots add`, `autorole show` | Automated join role allocation for humans and bots. |
+| **Reaction Roles** | 7 | `reactionrole add`, `reactionrole remove`, `reactionrole create` | Self-service role selection panels. |
+| **Autoresponder** | 6 | `autoresponder add`, `autoresponder remove`, `autoresponder list` | Trigger-based automated message responses. |
+| **Autoreact** | 7 | `autoreact add`, `autoreact list`, `autoreact channel add` | Automated reaction triggers per keyword or channel. |
+| **Ignore Engine** | 10 | `ignore channel`, `ignore command`, `ignore user`, `ignore bypass` | Granular permission blacklisting and bypass rules. |
+| **No-Prefix** | 4 | `noprefix add`, `noprefix remove`, `noprefix list`, `noprefix clear` | Global prefix bypass authorization for VIPs and staff. |
+| **Embed Builder** | 5 | `embed create`, `embed json`, `embed say`, `embed edit` | Interactive custom embed generation and dispatch. |
+| **Audit Logs** | 7 | `modlog`, `serverlog`, `messagelog`, `memberlog`, `voicelog` | Comprehensive guild event auditing. |
+| **General** | 6 | `remind`, `remind list`, `timestamp`, `worldclock`, `uptime` | Productivity reminders and timezone calculations. |
+| **Telemetry** | 5 | `latency`, `statsbot`, `shards`, `memory`, `system` | Bot performance, process memory, and host telemetry. |
+| **Mention Reply** | 4 | `mention_reply toggle`, `mention_reply message` | Customizable response when the bot is pinged. |
+| **Administration** | 11 | `eval`, `reloadall`, `sync`, `prefix`, `blacklist`, `maintenance` | Host maintenance, slash sync, and hot code reloading. |
+| **Help Engine** | 2 | `help`, `help <command>` | Interactive 25-option category menu and command inspector. |
 
 ---
 
 ## Configuration Guidelines
 
-1. **Hierarchy**: Position Zenith's role above the roles it manages in Server Settings so that moderation commands, mainrole sanitization, and role toggles succeed without hierarchy restrictions.
+1. **Hierarchy Placement**: Position Zenith's role above all roles it manages in Server Settings so that moderation commands, mainrole sanitization, and role assignment execute without hierarchy violations.
 2. **Permissions**: Required bot permissions include `Administrator` (or `View Audit Log`, `Manage Channels`, `Manage Roles`, `Ban Members`, and `Kick Members`).
 3. **Security**: Keep your `.env` file private and never commit tokens to public repositories.
 
@@ -173,4 +157,4 @@ zenith/
 ## License
 
 This project is licensed under the [MIT License](LICENSE).  
-Developed by [Shree](https://github.com/shree-ltc).
+Engineered by [Shree](https://github.com/shree-ltc).

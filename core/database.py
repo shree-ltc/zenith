@@ -366,6 +366,365 @@ class Database:
                 data_json TEXT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
+            """,
+            # Autoresponder
+            """
+            CREATE TABLE IF NOT EXISTS autoresponses (
+                guild_id BIGINT NOT NULL,
+                trigger TEXT NOT NULL,
+                response TEXT NOT NULL,
+                PRIMARY KEY (guild_id, trigger)
+            );
+            """,
+            # Autoreact
+            """
+            CREATE TABLE IF NOT EXISTS autoreacts (
+                guild_id BIGINT NOT NULL,
+                trigger TEXT NOT NULL,
+                emoji TEXT NOT NULL,
+                PRIMARY KEY (guild_id, trigger)
+            );
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS channel_autoreacts (
+                guild_id BIGINT NOT NULL,
+                channel_id BIGINT NOT NULL,
+                emoji TEXT NOT NULL,
+                PRIMARY KEY (guild_id, channel_id, emoji)
+            );
+            """,
+            # Autorole
+            """
+            CREATE TABLE IF NOT EXISTS autoroles (
+                guild_id BIGINT NOT NULL,
+                role_id BIGINT NOT NULL,
+                role_type VARCHAR(20) NOT NULL,
+                PRIMARY KEY (guild_id, role_id)
+            );
+            """,
+            # Reaction Roles
+            """
+            CREATE TABLE IF NOT EXISTS reaction_roles (
+                guild_id BIGINT NOT NULL,
+                message_id BIGINT NOT NULL,
+                emoji TEXT NOT NULL,
+                role_id BIGINT NOT NULL,
+                PRIMARY KEY (message_id, emoji)
+            );
+            """,
+            # Ignore System
+            """
+            CREATE TABLE IF NOT EXISTS ignored_channels (
+                guild_id BIGINT NOT NULL,
+                channel_id BIGINT NOT NULL,
+                PRIMARY KEY (guild_id, channel_id)
+            );
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS ignored_commands (
+                guild_id BIGINT NOT NULL,
+                command_name VARCHAR(50) NOT NULL,
+                PRIMARY KEY (guild_id, command_name)
+            );
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS ignored_users (
+                guild_id BIGINT NOT NULL,
+                user_id BIGINT NOT NULL,
+                PRIMARY KEY (guild_id, user_id)
+            );
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS ignore_bypass (
+                guild_id BIGINT NOT NULL,
+                target_id BIGINT NOT NULL,
+                target_type VARCHAR(10) NOT NULL,
+                PRIMARY KEY (guild_id, target_id)
+            );
+            """,
+            # Server Stats
+            """
+            CREATE TABLE IF NOT EXISTS stats_config (
+                guild_id BIGINT PRIMARY KEY,
+                category_id BIGINT DEFAULT NULL,
+                members_ch BIGINT DEFAULT NULL,
+                humans_ch BIGINT DEFAULT NULL,
+                bots_ch BIGINT DEFAULT NULL,
+                roles_ch BIGINT DEFAULT NULL
+            );
+            """,
+            # Invite & Message Tracker
+            """
+            CREATE TABLE IF NOT EXISTS invite_tracker (
+                guild_id BIGINT NOT NULL,
+                user_id BIGINT NOT NULL,
+                inviter_id BIGINT NOT NULL,
+                code VARCHAR(20) NOT NULL,
+                PRIMARY KEY (guild_id, user_id)
+            );
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS user_invites (
+                guild_id BIGINT NOT NULL,
+                user_id BIGINT NOT NULL,
+                regular INT DEFAULT 0,
+                leaves INT DEFAULT 0,
+                fakes INT DEFAULT 0,
+                bonus INT DEFAULT 0,
+                PRIMARY KEY (guild_id, user_id)
+            );
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS message_stats (
+                guild_id BIGINT NOT NULL,
+                user_id BIGINT NOT NULL,
+                count INT DEFAULT 0,
+                PRIMARY KEY (guild_id, user_id)
+            );
+            """,
+            # Reminders
+            """
+            CREATE TABLE IF NOT EXISTS reminders (
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL,
+                channel_id BIGINT NOT NULL,
+                remind_at DOUBLE PRECISION NOT NULL,
+                text TEXT NOT NULL
+            );
+            """ if self.is_postgres else """
+            CREATE TABLE IF NOT EXISTS reminders (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id BIGINT NOT NULL,
+                channel_id BIGINT NOT NULL,
+                remind_at REAL NOT NULL,
+                text TEXT NOT NULL
+            );
+            """,
+            # No-Prefix VIP Users
+            """
+            CREATE TABLE IF NOT EXISTS noprefix (
+                user_id BIGINT PRIMARY KEY
+            );
+            """,
+            # Leveling System
+            """
+            CREATE TABLE IF NOT EXISTS user_levels (
+                guild_id BIGINT NOT NULL,
+                user_id BIGINT NOT NULL,
+                xp BIGINT DEFAULT 0,
+                level INT DEFAULT 0,
+                last_xp DOUBLE PRECISION DEFAULT 0,
+                PRIMARY KEY (guild_id, user_id)
+            );
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS level_rewards (
+                guild_id BIGINT NOT NULL,
+                level INT NOT NULL,
+                role_id BIGINT NOT NULL,
+                PRIMARY KEY (guild_id, level)
+            );
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS level_config (
+                guild_id BIGINT PRIMARY KEY,
+                enabled BOOLEAN DEFAULT TRUE,
+                channel_id BIGINT DEFAULT NULL
+            );
+            """,
+            # Birthdays
+            """
+            CREATE TABLE IF NOT EXISTS birthdays (
+                guild_id BIGINT NOT NULL,
+                user_id BIGINT NOT NULL,
+                day INT NOT NULL,
+                month INT NOT NULL,
+                PRIMARY KEY (guild_id, user_id)
+            );
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS birthday_config (
+                guild_id BIGINT PRIMARY KEY,
+                channel_id BIGINT DEFAULT NULL,
+                role_id BIGINT DEFAULT NULL
+            );
+            """,
+            # Starboard
+            """
+            CREATE TABLE IF NOT EXISTS starboard_config (
+                guild_id BIGINT PRIMARY KEY,
+                channel_id BIGINT DEFAULT NULL,
+                threshold INT DEFAULT 3,
+                emoji TEXT DEFAULT 'star',
+                self_star BOOLEAN DEFAULT FALSE
+            );
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS starboard_messages (
+                guild_id BIGINT NOT NULL,
+                orig_message_id BIGINT PRIMARY KEY,
+                star_message_id BIGINT NOT NULL,
+                stars_count INT DEFAULT 1
+            );
+            """,
+            # Sticky Messages
+            """
+            CREATE TABLE IF NOT EXISTS sticky_messages (
+                guild_id BIGINT NOT NULL,
+                channel_id BIGINT PRIMARY KEY,
+                content TEXT NOT NULL,
+                last_message_id BIGINT DEFAULT NULL
+            );
+            """,
+            # Suggestions
+            """
+            CREATE TABLE IF NOT EXISTS suggestions_config (
+                guild_id BIGINT PRIMARY KEY,
+                channel_id BIGINT DEFAULT NULL
+            );
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS suggestions (
+                id SERIAL PRIMARY KEY,
+                guild_id BIGINT NOT NULL,
+                user_id BIGINT NOT NULL,
+                message_id BIGINT NOT NULL,
+                content TEXT NOT NULL,
+                status VARCHAR(20) DEFAULT 'pending',
+                reason TEXT DEFAULT NULL
+            );
+            """ if self.is_postgres else """
+            CREATE TABLE IF NOT EXISTS suggestions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id BIGINT NOT NULL,
+                user_id BIGINT NOT NULL,
+                message_id BIGINT NOT NULL,
+                content TEXT NOT NULL,
+                status VARCHAR(20) DEFAULT 'pending',
+                reason TEXT DEFAULT NULL
+            );
+            """,
+            # User Profiles & Reputation
+            """
+            CREATE TABLE IF NOT EXISTS user_profiles (
+                guild_id BIGINT NOT NULL,
+                user_id BIGINT NOT NULL,
+                bio TEXT DEFAULT 'No bio configured.',
+                rep INT DEFAULT 0,
+                spouse_id BIGINT DEFAULT NULL,
+                last_rep DOUBLE PRECISION DEFAULT 0,
+                PRIMARY KEY (guild_id, user_id)
+            );
+            """,
+            # Moderation Cases
+            """
+            CREATE TABLE IF NOT EXISTS moderation_cases (
+                id SERIAL PRIMARY KEY,
+                guild_id BIGINT NOT NULL,
+                user_id BIGINT NOT NULL,
+                moderator_id BIGINT NOT NULL,
+                action VARCHAR(20) NOT NULL,
+                reason TEXT NOT NULL,
+                created_at DOUBLE PRECISION NOT NULL
+            );
+            """ if self.is_postgres else """
+            CREATE TABLE IF NOT EXISTS moderation_cases (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id BIGINT NOT NULL,
+                user_id BIGINT NOT NULL,
+                moderator_id BIGINT NOT NULL,
+                action VARCHAR(20) NOT NULL,
+                reason TEXT NOT NULL,
+                created_at REAL NOT NULL
+            );
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS modlog_config (
+                guild_id BIGINT PRIMARY KEY,
+                channel_id BIGINT DEFAULT NULL
+            );
+            """,
+            # Voice Time Tracking
+            """
+            CREATE TABLE IF NOT EXISTS voice_time (
+                guild_id BIGINT NOT NULL,
+                user_id BIGINT NOT NULL,
+                total_seconds BIGINT DEFAULT 0,
+                last_joined DOUBLE PRECISION DEFAULT 0,
+                PRIMARY KEY (guild_id, user_id)
+            );
+            """,
+            # Tags & Custom Commands System
+            """
+            CREATE TABLE IF NOT EXISTS guild_tags (
+                guild_id BIGINT NOT NULL,
+                name VARCHAR(50) NOT NULL,
+                content TEXT NOT NULL,
+                author_id BIGINT NOT NULL,
+                uses INT DEFAULT 0,
+                created_at DOUBLE PRECISION NOT NULL,
+                PRIMARY KEY (guild_id, name)
+            );
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS guild_tag_aliases (
+                guild_id BIGINT NOT NULL,
+                alias VARCHAR(50) NOT NULL,
+                target_name VARCHAR(50) NOT NULL,
+                PRIMARY KEY (guild_id, alias)
+            );
+            """,
+            # AutoMod Granular Configuration
+            """
+            CREATE TABLE IF NOT EXISTS automod_config (
+                guild_id BIGINT PRIMARY KEY,
+                enabled BOOLEAN DEFAULT FALSE,
+                log_channel BIGINT DEFAULT NULL
+            );
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS automod_filters (
+                guild_id BIGINT NOT NULL,
+                filter_name VARCHAR(32) NOT NULL,
+                enabled BOOLEAN DEFAULT FALSE,
+                action VARCHAR(20) DEFAULT 'delete',
+                threshold INT DEFAULT 5,
+                PRIMARY KEY (guild_id, filter_name)
+            );
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS automod_words (
+                guild_id BIGINT NOT NULL,
+                word TEXT NOT NULL,
+                PRIMARY KEY (guild_id, word)
+            );
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS automod_whitelists (
+                guild_id BIGINT NOT NULL,
+                target_id BIGINT NOT NULL,
+                target_type VARCHAR(10) NOT NULL,
+                PRIMARY KEY (guild_id, target_id)
+            );
+            """,
+            # User Highlights (Keyword alerts)
+            """
+            CREATE TABLE IF NOT EXISTS user_highlights (
+                guild_id BIGINT NOT NULL,
+                user_id BIGINT NOT NULL,
+                keyword TEXT NOT NULL,
+                PRIMARY KEY (guild_id, user_id, keyword)
+            );
+            """,
+            # Economy Inventory
+            """
+            CREATE TABLE IF NOT EXISTS user_inventory (
+                guild_id BIGINT NOT NULL,
+                user_id BIGINT NOT NULL,
+                item_id VARCHAR(32) NOT NULL,
+                count INT DEFAULT 1,
+                PRIMARY KEY (guild_id, user_id, item_id)
+            );
             """
         ]
 
