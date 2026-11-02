@@ -16,7 +16,7 @@ import discord
 from discord.ext import commands
 
 from core.database import db
-from core.security import is_authorized_admin
+from core.security import is_authorized_admin, validate_member_hierarchy
 from ui.embeds import ZenithEmbed
 from ui.colors import Color
 from core.config import config
@@ -44,6 +44,10 @@ class Moderation(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+
+    def can_moderate(self, ctx: commands.Context, target: discord.Member) -> tuple[bool, str]:
+        """Validates hierarchy between moderator, target, and the bot."""
+        return validate_member_hierarchy(ctx.author, target, ctx.guild.me)
 
     def _check_hierarchy(self, moderator: discord.Member, target: discord.Member) -> bool:
         """Enforces that the moderator stands higher in the role hierarchy than the target."""
@@ -525,8 +529,9 @@ class Moderation(commands.Cog):
     @commands.bot_has_permissions(manage_nicknames=True)
     async def nick_command(self, ctx: commands.Context, member: discord.Member, *, nickname: Optional[str] = None):
         """Change or reset a member's server nickname."""
-        if not await self.can_moderate(ctx, member):
-            return await ctx.reply("[ERROR] Hierarchy restriction: Cannot modify this member.", mention_author=False)
+        ok, err = self.can_moderate(ctx, member)
+        if not ok:
+            return await ctx.reply(embed=ZenithEmbed.error("Hierarchy Error", err), mention_author=False)
 
         old_nick = member.display_name
         try:
@@ -543,8 +548,9 @@ class Moderation(commands.Cog):
     @commands.bot_has_permissions(manage_nicknames=True)
     async def resetnick_command(self, ctx: commands.Context, member: discord.Member):
         """Reset a member's nickname back to their default username."""
-        if not await self.can_moderate(ctx, member):
-            return await ctx.reply("[ERROR] Hierarchy restriction: Cannot modify this member.", mention_author=False)
+        ok, err = self.can_moderate(ctx, member)
+        if not ok:
+            return await ctx.reply(embed=ZenithEmbed.error("Hierarchy Error", err), mention_author=False)
 
         try:
             await member.edit(nick=None, reason=f"Moderator: {ctx.author}")
@@ -557,6 +563,10 @@ class Moderation(commands.Cog):
     @commands.bot_has_permissions(move_members=True)
     async def voicekick_command(self, ctx: commands.Context, member: discord.Member, *, reason: Optional[str] = "Voice kick"):
         """Disconnect a member from their current voice channel."""
+        ok, err = self.can_moderate(ctx, member)
+        if not ok:
+            return await ctx.reply(embed=ZenithEmbed.error("Hierarchy Error", err), mention_author=False)
+
         if not member.voice or not member.voice.channel:
             return await ctx.reply(f"[ERROR] {member.mention} is not in any voice channel.", mention_author=False)
 
@@ -571,6 +581,10 @@ class Moderation(commands.Cog):
     @commands.bot_has_permissions(mute_members=True)
     async def voicemute_command(self, ctx: commands.Context, member: discord.Member, *, reason: Optional[str] = "Voice mute"):
         """Server-mute a member in voice channels."""
+        ok, err = self.can_moderate(ctx, member)
+        if not ok:
+            return await ctx.reply(embed=ZenithEmbed.error("Hierarchy Error", err), mention_author=False)
+
         if not member.voice or not member.voice.channel:
             return await ctx.reply(f"[ERROR] {member.mention} is not currently connected to voice.", mention_author=False)
 
@@ -585,6 +599,10 @@ class Moderation(commands.Cog):
     @commands.bot_has_permissions(mute_members=True)
     async def voiceunmute_command(self, ctx: commands.Context, member: discord.Member):
         """Remove server-mute from a member in voice channels."""
+        ok, err = self.can_moderate(ctx, member)
+        if not ok:
+            return await ctx.reply(embed=ZenithEmbed.error("Hierarchy Error", err), mention_author=False)
+
         if not member.voice or not member.voice.channel:
             return await ctx.reply(f"[ERROR] {member.mention} is not currently connected to voice.", mention_author=False)
 
@@ -599,6 +617,10 @@ class Moderation(commands.Cog):
     @commands.bot_has_permissions(deafen_members=True)
     async def voicedeafen_command(self, ctx: commands.Context, member: discord.Member, *, reason: Optional[str] = "Voice deafen"):
         """Server-deafen a member in voice channels."""
+        ok, err = self.can_moderate(ctx, member)
+        if not ok:
+            return await ctx.reply(embed=ZenithEmbed.error("Hierarchy Error", err), mention_author=False)
+
         if not member.voice or not member.voice.channel:
             return await ctx.reply(f"[ERROR] {member.mention} is not currently connected to voice.", mention_author=False)
 
@@ -613,6 +635,10 @@ class Moderation(commands.Cog):
     @commands.bot_has_permissions(deafen_members=True)
     async def voiceundeafen_command(self, ctx: commands.Context, member: discord.Member):
         """Remove server-deafen from a member in voice channels."""
+        ok, err = self.can_moderate(ctx, member)
+        if not ok:
+            return await ctx.reply(embed=ZenithEmbed.error("Hierarchy Error", err), mention_author=False)
+
         if not member.voice or not member.voice.channel:
             return await ctx.reply(f"[ERROR] {member.mention} is not currently connected to voice.", mention_author=False)
 
@@ -627,6 +653,10 @@ class Moderation(commands.Cog):
     @commands.bot_has_permissions(move_members=True)
     async def voicemove_command(self, ctx: commands.Context, member: discord.Member, target_channel: discord.VoiceChannel):
         """Move a member to another voice channel."""
+        ok, err = self.can_moderate(ctx, member)
+        if not ok:
+            return await ctx.reply(embed=ZenithEmbed.error("Hierarchy Error", err), mention_author=False)
+
         if not member.voice or not member.voice.channel:
             return await ctx.reply(f"[ERROR] {member.mention} is not currently in a voice channel.", mention_author=False)
 

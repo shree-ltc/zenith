@@ -14,7 +14,7 @@ import discord
 from discord.ext import commands
 
 from core.database import db
-from core.security import is_authorized_admin, DANGEROUS_PERMISSIONS, is_extra_owner
+from core.security import is_authorized_admin, DANGEROUS_PERMISSIONS, is_extra_owner, is_dangerous_role
 from core.config import config
 from core.logging import info, warn, error
 
@@ -270,6 +270,42 @@ class Antinuke(commands.Cog):
                 except Exception:
                     pass
                 await self.punish_executor(guild, entry.user, "Bot Add", f"Added unapproved bot {member.mention}")
+                break
+
+    @commands.Cog.listener()
+    async def on_member_update(self, before: discord.Member, after: discord.Member):
+        guild = after.guild
+        added_roles = [r for r in after.roles if r not in before.roles]
+        if not added_roles:
+            return
+
+        dangerous_added = [r for r in added_roles if is_dangerous_role(r)]
+        if not dangerous_added:
+            return
+
+        cfg = await self.get_config(guild.id)
+        if not cfg or not cfg.get("enabled", True):
+            return
+
+        await asyncio.sleep(0.5)
+        async for entry in guild.audit_logs(action=discord.AuditLogAction.member_role_update, limit=2):
+            if entry.target.id == after.id and entry.user:
+                if await self.is_whitelisted(guild, entry.user.id):
+                    return
+
+                # Unauthorized dangerous role grant intercepted
+                try:
+                    await after.remove_roles(*dangerous_added, reason="Zenith Antinuke: Unauthorized dangerous role grant revoked.")
+                except Exception:
+                    pass
+
+                role_names = ", ".join(r.name for r in dangerous_added)
+                await self.punish_executor(
+                    guild,
+                    entry.user,
+                    "Dangerous Role Escalation",
+                    f"Assigned dangerous role(s) [{role_names}] to {after} (`{after.id}`)"
+                )
                 break
 
     @commands.Cog.listener()

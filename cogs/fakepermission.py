@@ -11,7 +11,7 @@ import discord
 from discord.ext import commands
 
 from core.database import db
-from core.security import is_authorized_admin
+from core.security import is_authorized_admin, is_dangerous_role
 from core.config import config
 
 ACCENT_COLOR = 0x0F0F13
@@ -135,6 +135,13 @@ class FakePermission(commands.Cog):
             return await ctx.send(embed=discord.Embed(
                 title="[HIERARCHY ERROR]",
                 description="Cannot assign a role that is higher than or equal to my highest role.",
+                color=ACCENT_COLOR
+            ))
+
+        if is_dangerous_role(role):
+            return await ctx.send(embed=discord.Embed(
+                title="[SECURITY VIOLATION]",
+                description="Roles possessing native Discord Administrator or dangerous permissions cannot be designated as Fake Permission roles.",
                 color=ACCENT_COLOR
             ))
 

@@ -9,7 +9,12 @@ from typing import Optional, Callable
 import discord
 from discord.ext import commands
 
-from core.security import is_authorized_admin, is_dangerous_role, validate_role_hierarchy
+from core.security import (
+    is_authorized_admin,
+    is_dangerous_role,
+    validate_role_hierarchy,
+    validate_member_hierarchy
+)
 from core.config import config
 
 ACCENT_COLOR = 0x0F0F13
@@ -188,12 +193,16 @@ class Role(commands.Cog):
             return await ctx.send(embed=embed)
 
         # Case 3: Both provided -> Toggle role
-        ok, err = self._check_role_manageable(ctx, role)
-        if not ok:
-            embed = discord.Embed(title="[HIERARCHY ERROR]", description=err, color=ACCENT_COLOR)
-            return await ctx.send(embed=embed)
+        ok_member, err_member = validate_member_hierarchy(ctx.author, member, ctx.guild.me)
+        if not ok_member:
+            return await ctx.send(embed=discord.Embed(title="[HIERARCHY ERROR]", description=err_member, color=ACCENT_COLOR))
 
-        if role in member.roles:
+        is_removal = role in member.roles
+        ok, err = self._check_role_manageable(ctx, role, is_removal=is_removal)
+        if not ok:
+            return await ctx.send(embed=discord.Embed(title="[SECURITY RESTRICTION]", description=err, color=ACCENT_COLOR))
+
+        if is_removal:
             await member.remove_roles(role, reason=f"Zenith Role Toggle [{ctx.author}]")
             action = "Removed"
         else:
@@ -214,9 +223,13 @@ class Role(commands.Cog):
     @commands.bot_has_permissions(manage_roles=True)
     async def role_add(self, ctx: commands.Context, member: discord.Member, role: discord.Role):
         """Add a role to a specific member."""
-        ok, err = self._check_role_manageable(ctx, role)
+        ok_member, err_member = validate_member_hierarchy(ctx.author, member, ctx.guild.me)
+        if not ok_member:
+            return await ctx.send(embed=discord.Embed(title="[HIERARCHY ERROR]", description=err_member, color=ACCENT_COLOR))
+
+        ok, err = self._check_role_manageable(ctx, role, is_removal=False)
         if not ok:
-            return await ctx.send(embed=discord.Embed(title="[HIERARCHY ERROR]", description=err, color=ACCENT_COLOR))
+            return await ctx.send(embed=discord.Embed(title="[SECURITY RESTRICTION]", description=err, color=ACCENT_COLOR))
 
         if role in member.roles:
             return await ctx.send(embed=discord.Embed(
@@ -240,6 +253,10 @@ class Role(commands.Cog):
     @commands.bot_has_permissions(manage_roles=True)
     async def role_remove(self, ctx: commands.Context, member: discord.Member, role: discord.Role):
         """Remove a role from a specific member."""
+        ok_member, err_member = validate_member_hierarchy(ctx.author, member, ctx.guild.me)
+        if not ok_member:
+            return await ctx.send(embed=discord.Embed(title="[HIERARCHY ERROR]", description=err_member, color=ACCENT_COLOR))
+
         ok, err = self._check_role_manageable(ctx, role, is_removal=True)
         if not ok:
             return await ctx.send(embed=discord.Embed(title="[HIERARCHY ERROR]", description=err, color=ACCENT_COLOR))
@@ -420,6 +437,13 @@ class Role(commands.Cog):
     @commands.guild_only()
     async def role_duplicate(self, ctx: commands.Context, role: discord.Role, *, new_name: Optional[str] = None):
         """Clone an existing role's permissions and color."""
+        if is_dangerous_role(role) and not await is_authorized_admin(ctx.author.id, ctx.guild, self.bot):
+            return await ctx.send(embed=discord.Embed(
+                title="[SECURITY VIOLATION]",
+                description="Cloning roles with Administrator or dangerous permissions is restricted to Server Owners.",
+                color=ACCENT_COLOR
+            ))
+
         name = new_name or f"{role.name} Copy"
         try:
             new_role = await ctx.guild.create_role(
@@ -442,8 +466,9 @@ class Role(commands.Cog):
     @commands.guild_only()
     async def role_strip(self, ctx: commands.Context, member: discord.Member):
         """Remove all non-default roles from a member."""
-        if member.top_role >= ctx.author.top_role and ctx.author.id != ctx.guild.owner_id:
-            return await ctx.send(embed=discord.Embed(title="[HIERARCHY ERROR]", description="Cannot strip roles from members with equal or higher roles.", color=ACCENT_COLOR))
+        ok_member, err_member = validate_member_hierarchy(ctx.author, member, ctx.guild.me)
+        if not ok_member:
+            return await ctx.send(embed=discord.Embed(title="[HIERARCHY ERROR]", description=err_member, color=ACCENT_COLOR))
 
         roles_to_remove = [r for r in member.roles if not r.is_default() and r < ctx.guild.me.top_role]
         if not roles_to_remove:

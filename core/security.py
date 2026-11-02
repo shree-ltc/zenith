@@ -84,11 +84,51 @@ def validate_role_hierarchy(
     if target_role.managed:
         return False, f"[DENIED] Role {target_role.mention} is managed by an integration/bot and cannot be assigned manually."
 
+    # Security Guard: Administrator and dangerous roles cannot be assigned via bot
+    if not is_removal and is_dangerous_role(target_role):
+        return False, f"[SECURITY RESTRICTION] Role {target_role.mention} possesses Administrator or dangerous permissions and cannot be assigned through bot commands."
+
     # Server owner bypasses role hierarchy checks
     if actor.id == guild.owner_id or actor.id in config.OWNER_IDS:
         return True, ""
 
     if target_role >= actor.top_role:
         return False, f"[DENIED] Role {target_role.mention} is higher than or equal to your highest role."
+
+    return True, ""
+
+
+def validate_member_hierarchy(
+    actor: discord.Member,
+    target: discord.Member,
+    me: Optional[discord.Member] = None
+) -> Tuple[bool, str]:
+    """
+    Validates hierarchy between actor, target, and the bot:
+    1. Actor cannot target the Server Owner.
+    2. Actor cannot target members with an equal or higher top role.
+    3. Bot cannot target members with an equal or higher top role than the bot.
+    4. Target cannot be the bot itself.
+    """
+    guild = actor.guild
+    if me is None:
+        me = guild.me
+
+    is_owner = (actor.id == guild.owner_id or actor.id in config.OWNER_IDS)
+
+    if target.id == guild.owner_id and not is_owner:
+        return False, "[DENIED] You cannot take action against the Server Owner."
+
+    if target.id == me.id:
+        return False, "[DENIED] Administrative actions cannot be executed against the bot itself."
+
+    # Actor hierarchy check (Same role or higher is strictly blocked)
+    if not is_owner:
+        if target.top_role >= actor.top_role:
+            return False, f"[DENIED] Target {target.mention} possesses an equal or higher role than you."
+
+    # Bot hierarchy check
+    if target.top_role >= me.top_role:
+        return False, f"[DENIED] Target {target.mention} possesses an equal or higher role than the bot."
 
     return True, ""
