@@ -7,43 +7,47 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-success?style=flat-square)](LICENSE)
 [![Discord](https://img.shields.io/badge/Discord-shree.ltc-5865F2?style=flat-square&logo=discord&logoColor=white)](https://discord.com/users/1465912900710305822)
 
-Zenith is a modular, high-throughput Discord bot engine designed for community security, automated moderation, and server management. Built with asynchronous Python (`discord.py` 2.x), it provides real-time audit log analysis for anti-nuke defense, interactive UI components, and hybrid database storage.
+Zenith is an enterprise-grade, asynchronous Discord bot framework engineered for community protection, privilege escalation prevention, autonomous raid defense, and server administration. Built with `discord.py` 2.x, it integrates real-time audit log analysis, sub-millisecond memory caching, dual-engine database persistence (PostgreSQL + SQLite), and high-fidelity media streaming.
 
 ---
 
-## Features
+## Core Systems
+
+### Mainrole Protection
+* **Privilege Guard**: Protects default `@everyone` and verified member roles from receiving dangerous administrative permissions (`administrator`, `manage_roles`, `manage_channels`, `ban_members`, `kick_members`, `moderate_members`, `manage_guild`, etc.).
+* **Instant Auto-Revocation**: Intercepts role permission updates on the gateway, instantly strips unauthorized dangerous permissions back to safe state, and logs the offending actor.
+* **Security Audits**: Real-time auditing (`mainrole scan`) to sanitize roles currently holding dangerous permissions.
 
 ### Security & Antinuke
-* **Audit Log Analysis**: Real-time monitoring intercepting unauthorized bans, kicks, channel modifications, role tampering, and rogue bot additions.
-* **Instant Containment**: Enforces automatic offender punishments (ban/kick) and recovers modified channels and banned accounts.
-* **Whitelist Registry**: Dedicated immunity lists for server owners and trusted staff members.
+* **Real-Time Gateway Monitoring**: Intercepts unauthorized bans, kicks, member prunes, channel tampering, role deletion, rogue bot additions, webhooks, and guild modifications (vanity URL, name, icon).
+* **Disaster Recovery & Snapshots**: Serializes complete guild structures (channels, categories, roles, permissions) to database snapshots (`antinuke snapshot`) and reconstructs damaged infrastructure automatically (`antinuke serverrecovery`).
+* **Multi-Tier Authorization**: Server Owner immunity, Extra Owner registry (`extraowner`), and granular module whitelisting.
 
-### Automod
-* **Content Filtering**: Filters spam bursts, Discord server invite links, external URLs, excessive capitalization, and mass mentions.
-* **Custom Sanctions**: Automated timeouts (5 minutes) or message deletions based on guild preferences.
+### Anti-Betray Protocol
+* **Compromised Account Neutralization**: Monitors administrative action velocity in sliding time windows (e.g., 3 destructive actions in 5 seconds).
+* **Autonomous Intervention**: Bypasses whitelists and immediately neutralizes rogue staff (bans or removes staff roles) if velocity thresholds are exceeded.
 
-### Moderation
-* **Member Actions**: Ban, softban, kick, timeout, and warning infractions stored in the database.
-* **Channel Controls**: Channel lockdown, hide/unhide toggles, and slowmode controls.
-* **Message Purging**: Multi-filter purge commands (bots, links, user-specific, or keyword match up to 500 messages).
-* **Role Utilities**: Bulk role assignment for humans and bots.
+### Fake Permissions (Virtual Authorization)
+* **Zero-Trust Moderation**: Allows guild owners to authorize staff roles to execute Zenith commands (`ban`, `kick`, `timeout`, `warn`, `lock`, `hide`, `purge`) without granting actual Discord permissions.
+* **Daily Action Quotas**: Configurable per-action daily limits to strictly prevent moderator abuse or compromised account mass-bans.
 
-### Infrastructure & Community Tools
-* **Support Tickets**: Button-driven ticket creation panels, private channel permissions, staff claiming, and `.txt` transcript delivery to direct messages.
-* **Temporary Voice (TempVC)**: Join-to-create voice hub with automated creation and empty room deletion. Room owners can lock, limit, rename, and permit users.
-* **Member Onboarding**: Customizable welcome announcements with member counters and automated initial roles.
-* **Virtual Economy**: Balances, banking, work shifts, transfers, slot game, and server leaderboards.
-* **Server Administration**: Channel recreation (nuke), server-wide lockdowns, and bulk nickname dehoisting.
+### Complete Role Management Suite
+* **Interactive Toggling**: Assign or strip roles on users with strict hierarchy enforcement.
+* **Role Configuration**: Create, delete, rename, change color, and set hoist display.
+* **Safe Mass Operations**: Rate-limited bulk assignment and removal for all members, human accounts, or bot accounts (`role all`, `role humans`, `role bots`, `rroleall`, `rrolehumans`, `rrolebots`), strictly blocking mass assignments of dangerous roles.
+
+### Enforcement & Moderation
+* **Sanctions**: Bans, softbans, kicks, timeouts, and persistent database warnings.
+* **Mass Actions**: Mass unban with progress tracking (`unbanall`).
+* **Channel Controls**: Lock/unlock and hide/unhide per channel or server-wide (`lockall`, `unlockall`, `hideall`, `unhideall`), and slowmode.
+* **Channel Maintenance**: Clean channel nuke re-creation and channel cloning.
+* **Emoji Utilities**: Steal and import custom emojis from external servers (`steal`).
+* **Purge Suite**: Target-specific message purging (bots, links, users, match strings, and attachments).
 
 ### Audio & Streaming
-* **Lavalink Integration**: High-fidelity audio streaming with queue management, seek controls, volume scaling, and shuffle.
-* **Intelligent Autoplay**: Native YouTube RD mix integration and parallel artist queries. Automatically queues related tracks when the queue finishes, filtering out loops, compilations, and duplicate tracks.
-* **Interactive Player Controller**: Button controls for Play/Pause, Skip, Stop, Restart, Loop mode, Autoplay, and Queue.
-
-### Architecture & Resilience
-* **Dual Database Engine**: High-performance PostgreSQL (`asyncpg`) with automatic fallback to local SQLite (`aiosqlite`).
-* **Caching Layer**: Redis support with in-memory TTL caching fallback.
-* **Logging System**: ANSI colorized console logs and rotating file logs (`logs/zenith.log`).
+* **Lavalink Engine**: High-fidelity audio playback with seek, volume normalization, and queue management.
+* **Smart Autoplay**: Native YouTube RD mix integration and parallel artist discovery that continuously queues related tracks while filtering loops, compilations, and duplicates.
+* **Interactive Controller**: Full button-driven playback control interface.
 
 ---
 
@@ -99,13 +103,18 @@ zenith/
 │   ├── config.py          # Typed environment settings loader
 │   ├── database.py        # Database abstraction (PostgreSQL / SQLite / Redis)
 │   ├── errors.py          # Global command error handling
-│   └── logging.py         # Console formatter and rotating file logger
+│   ├── logging.py         # Console formatter and rotating file logger
+│   └── security.py        # Permission validators and hierarchy checks
 ├── ui/
 │   ├── colors.py          # UI color constants
 │   ├── embeds.py          # ZenithEmbed formatting helper
 │   └── views.py           # Paginator and confirmation views
 ├── cogs/
-│   ├── antinuke.py        # Anti-raid and audit log protection
+│   ├── mainrole.py        # Protection for @everyone and verified member roles
+│   ├── antinuke.py        # Anti-raid engine, snapshots, and extra owners
+│   ├── antibetray.py      # Rogue staff velocity detection and neutralization
+│   ├── fakepermission.py  # Virtual moderator permissions with daily quotas
+│   ├── role.py            # Individual role editing and safe mass role tools
 │   ├── automod.py         # Regex message scanner and burst limiter
 │   ├── moderation.py      # Sanctions, warnings, locks, and purges
 │   ├── tickets.py         # Support ticket panels and transcripts
@@ -133,9 +142,13 @@ zenith/
 
 | Category | Primary Commands | Description |
 | :--- | :--- | :--- |
-| **Security** | `antinuke enable`, `antinuke punishment`, `antinuke whitelist` | Intercepts unauthorized server modifications. |
+| **Mainrole** | `mainrole add`, `mainrole remove`, `mainrole scan`, `mainrole show` | Protects core member roles from harmful permissions. |
+| **Security** | `antinuke enable`, `antinuke snapshot`, `antinuke serverrecovery`, `antinuke wl` | Real-time anti-raid protection and disaster recovery. |
+| **Anti-Betray** | `antibetray enable`, `antibetray set`, `antibetray punishment` | Rogue staff velocity detection and neutralization. |
+| **Fake Permissions** | `fp set`, `fp limit`, `fp limits`, `fp usage`, `fp reset` | Virtual mod permissions with daily execution quotas. |
+| **Roles** | `role add`, `role remove`, `role all`, `role humans`, `role bots`, `rrole` | Individual role toggling and safe mass assignment. |
+| **Moderation** | `ban`, `unban`, `softban`, `kick`, `timeout`, `warn`, `lockall`, `unbanall` | Member management and server lockdowns. |
 | **Automod** | `automod antispam`, `automod antilinks`, `automod antiinvites` | Filters spam, invites, and external links. |
-| **Moderation** | `ban`, `softban`, `kick`, `timeout`, `warn`, `lock`, `purge` | Member management and chat regulation. |
 | **Tickets** | `ticket setup`, `ticket close`, `ticket claim`, `ticket add` | Private support channels with transcript export. |
 | **Voice** | `voice lock`, `voice unlock`, `voice rename`, `voice limit` | Dynamic join-to-create temporary channels. |
 | **Welcome** | `welcome channel`, `welcome message`, `autorole human` | Member greetings and initial role allocation. |
@@ -151,8 +164,8 @@ zenith/
 
 ## Configuration Guidelines
 
-1. **Hierarchy**: Position Zenith's role above the roles it manages in the Server Settings so that moderation commands and role toggles succeed without hierarchy restrictions.
-2. **Permissions**: Required bot permissions include `View Audit Log`, `Manage Channels`, `Manage Roles`, `Ban Members`, and `Kick Members`.
+1. **Hierarchy**: Position Zenith's role above the roles it manages in Server Settings so that moderation commands, mainrole sanitization, and role toggles succeed without hierarchy restrictions.
+2. **Permissions**: Required bot permissions include `Administrator` (or `View Audit Log`, `Manage Channels`, `Manage Roles`, `Ban Members`, and `Kick Members`).
 3. **Security**: Keep your `.env` file private and never commit tokens to public repositories.
 
 ---

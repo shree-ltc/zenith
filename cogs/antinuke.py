@@ -1,23 +1,47 @@
 """
-Antinuke system monitoring audit logs for unauthorized guild changes.
-Intercepts mass bans, kicks, channel purges, role tampering, and rogue bots.
+Advanced Antinuke Defense Engine for Zenith.
+Real-time audit log interception, autonomous threat neutralization, guild state snapshots,
+server disaster recovery, extra-owner registry, and granular whitelist management.
+Developed by Shree (Discord ID: 1465912900710305822).
 """
 
+import json
 import asyncio
 from datetime import datetime, timezone
-from typing import Optional, Union
+from typing import Optional, Union, Dict, Any, List
 
 import discord
 from discord.ext import commands
 
 from core.database import db
-from ui.embeds import ZenithEmbed
-from ui.colors import Color
+from core.security import is_authorized_admin, DANGEROUS_PERMISSIONS, is_extra_owner
+from core.config import config
 from core.logging import info, warn, error
+
+ACCENT_COLOR = 0x0F0F13
+
+MODULE_NAMES = {
+    "ban": "Anti-Ban",
+    "kick": "Anti-Kick",
+    "prune": "Anti-Prune",
+    "memup": "Anti-Member Update",
+    "rlcr": "Anti-Role Create",
+    "rldl": "Anti-Role Delete",
+    "rlup": "Anti-Role Update",
+    "chcr": "Anti-Channel Create",
+    "chdl": "Anti-Channel Delete",
+    "chup": "Anti-Channel Update",
+    "webhook": "Anti-Webhook",
+    "botadd": "Anti-Bot Add",
+    "serverup": "Anti-Server Update",
+    "meneve": "Anti-Mention Spam",
+    "integration": "Anti-Integration",
+    "autorecovery": "Auto-Recovery",
+}
 
 
 class Antinuke(commands.Cog):
-    """Real-time server shield and anti-raid defense engine."""
+    """Next-generation server defense and autonomous raid prevention engine."""
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -25,20 +49,17 @@ class Antinuke(commands.Cog):
         self._action_cooldown: set[str] = set()
 
     # ═══════════════════════════════════════════════════════════════
-    #  INTERNAL DEFENSE LOGIC
+    #  IMMUNITY & CONFIG EVALUATORS
     # ═══════════════════════════════════════════════════════════════
 
     async def is_whitelisted(self, guild: discord.Guild, user_id: int) -> bool:
-        """Determines if a user has immunity (Server Owner or Whitelisted Admin)."""
-        # 1. Server Owner is always completely immune
-        if guild.owner_id == user_id:
+        """Determines if a user has immunity (Server Owner, Extra Owner, or Whitelisted)."""
+        if user_id == guild.owner_id or user_id in config.OWNER_IDS or user_id == self.bot.user.id:
             return True
 
-        # 2. The bot itself is immune
-        if user_id == self.bot.user.id:
+        if await is_extra_owner(guild.id, user_id):
             return True
 
-        # 3. Check database whitelist
         cached = await db.cache_get(f"whitelist:{guild.id}:{user_id}")
         if cached is not None:
             return bool(int(cached))
@@ -66,17 +87,14 @@ class Antinuke(commands.Cog):
         return row
 
     async def punish_executor(self, guild: discord.Guild, user: Union[discord.User, discord.Member], action: str, details: str):
-        """Applies configured punishment (Ban/Kick) to rogue administrator and dispatches audit log."""
+        """Applies configured punishment (Ban/Kick) to rogue administrator and dispatches audit alert."""
         cfg = await self.get_config(guild.id)
         punishment_type = cfg.get("punishment", "ban") if cfg else "ban"
 
-        # Unique key to ensure we don't punish the same trigger multiple times in concurrency
         lock_key = f"punish:{guild.id}:{user.id}:{action}"
         if lock_key in self._action_cooldown:
             return
         self._action_cooldown.add(lock_key)
-
-        # Remove from cooldown after 10 seconds
         asyncio.get_event_loop().call_later(10, self._action_cooldown.discard, lock_key)
 
         warn(f"[Antinuke] Unauthorized action detected in '{guild.name}' by {user} (ID: {user.id}) -> Action: {action}", "antinuke")
@@ -88,351 +106,733 @@ class Antinuke(commands.Cog):
             elif punishment_type == "kick" and isinstance(user, discord.Member):
                 await guild.kick(user, reason=f"Zenith Antinuke: Unauthorized {action} detected.")
         except discord.Forbidden:
-            error(f"[Antinuke] Failed to punish {user} in {guild.name} (Missing Permissions or Role Hierarchy).", "antinuke")
+            error(f"[Antinuke] Missing permissions to punish {user} in {guild.name}.", "antinuke")
         except Exception as e:
-            error(f"[Antinuke] Unexpected error applying punishment: {e}", "antinuke")
+            error(f"[Antinuke] Error applying punishment: {e}", "antinuke")
 
         # Dispatch Alert Embed to configured log channel
         log_channel_id = cfg.get("log_channel") if cfg else None
         if log_channel_id:
             channel = guild.get_channel(log_channel_id)
             if channel and isinstance(channel, discord.TextChannel):
-                embed = ZenithEmbed(
-                    title="Antinuke Security Alert",
-                    description="An unauthorized action was detected and intercepted.",
-                    color=Color.ERROR
+                embed = discord.Embed(
+                    title="[SECURITY INCIDENT] Antinuke Interception",
+                    description="An unauthorized administrative action was detected and intercepted.",
+                    color=0xFF0000
                 )
                 embed.add_field(name="Target Action", value=f"`{action}`", inline=True)
                 embed.add_field(name="Offending Actor", value=f"{user.mention} (`{user.id}`)", inline=True)
-                embed.add_field(name="Punishment Enforced", value=f"`{punishment_type.upper()}`", inline=True)
-                embed.add_field(name="Details", value=details, inline=False)
+                embed.add_field(name="Enforced Sanction", value=f"`{punishment_type.upper()}`", inline=True)
+                embed.add_field(name="Incident Details", value=details, inline=False)
+                embed.set_footer(text="Zenith Autonomous Defense | Developed by Shree")
+                embed.timestamp = datetime.now(timezone.utc)
                 try:
                     await channel.send(embed=embed)
                 except Exception:
                     pass
 
     # ═══════════════════════════════════════════════════════════════
-    #  SECURITY EVENT LISTENERS
+    #  AUTONOMOUS EVENT LISTENERS
     # ═══════════════════════════════════════════════════════════════
 
     @commands.Cog.listener()
     async def on_guild_channel_create(self, channel: discord.abc.GuildChannel):
-        """Detects unauthorized channel generation."""
         guild = channel.guild
         cfg = await self.get_config(guild.id)
         if not cfg or not cfg.get("anti_channel", True):
             return
 
-        try:
-            async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.channel_create):
-                if entry.target.id == channel.id:
-                    if not await self.is_whitelisted(guild, entry.user.id):
-                        await self.punish_executor(guild, entry.user, "Channel Create", f"Created channel: `#{channel.name}`")
-                        await channel.delete(reason="Zenith Antinuke: Reverting unauthorized channel creation.")
-                    break
-        except Exception:
-            pass
+        await asyncio.sleep(0.5)
+        async for entry in guild.audit_logs(action=discord.AuditLogAction.channel_create, limit=1):
+            if entry.target.id == channel.id and entry.user:
+                if await self.is_whitelisted(guild, entry.user.id):
+                    return
+                try:
+                    await channel.delete(reason="Zenith Antinuke: Unauthorized channel creation.")
+                except Exception:
+                    pass
+                await self.punish_executor(guild, entry.user, "Channel Create", f"Created channel #{channel.name}")
+                break
 
     @commands.Cog.listener()
     async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel):
-        """Detects unauthorized channel deletion."""
         guild = channel.guild
         cfg = await self.get_config(guild.id)
         if not cfg or not cfg.get("anti_channel", True):
             return
 
-        try:
-            async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.channel_delete):
-                if entry.target.id == channel.id:
-                    if not await self.is_whitelisted(guild, entry.user.id):
-                        await self.punish_executor(guild, entry.user, "Channel Delete", f"Deleted channel: `#{channel.name}`")
-                    break
-        except Exception:
-            pass
+        await asyncio.sleep(0.5)
+        async for entry in guild.audit_logs(action=discord.AuditLogAction.channel_delete, limit=1):
+            if entry.target.id == channel.id and entry.user:
+                if await self.is_whitelisted(guild, entry.user.id):
+                    return
+                await self.punish_executor(guild, entry.user, "Channel Delete", f"Deleted channel #{channel.name}")
+                break
+
+    @commands.Cog.listener()
+    async def on_guild_channel_update(self, before: discord.abc.GuildChannel, after: discord.abc.GuildChannel):
+        guild = after.guild
+        cfg = await self.get_config(guild.id)
+        if not cfg or not cfg.get("anti_channel", True):
+            return
+
+        async for entry in guild.audit_logs(action=discord.AuditLogAction.channel_update, limit=1):
+            if entry.target.id == after.id and entry.user:
+                if await self.is_whitelisted(guild, entry.user.id):
+                    return
+                await self.punish_executor(guild, entry.user, "Channel Update", f"Modified channel #{after.name}")
+                break
 
     @commands.Cog.listener()
     async def on_guild_role_create(self, role: discord.Role):
-        """Detects unauthorized role creation."""
         guild = role.guild
         cfg = await self.get_config(guild.id)
         if not cfg or not cfg.get("anti_role", True):
             return
 
-        try:
-            async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_create):
-                if entry.target.id == role.id:
-                    if not await self.is_whitelisted(guild, entry.user.id):
-                        await self.punish_executor(guild, entry.user, "Role Create", f"Created role: `@{role.name}`")
-                        await role.delete(reason="Zenith Antinuke: Reverting unauthorized role creation.")
-                    break
-        except Exception:
-            pass
+        await asyncio.sleep(0.5)
+        async for entry in guild.audit_logs(action=discord.AuditLogAction.role_create, limit=1):
+            if entry.target.id == role.id and entry.user:
+                if await self.is_whitelisted(guild, entry.user.id):
+                    return
+                try:
+                    await role.delete(reason="Zenith Antinuke: Unauthorized role creation.")
+                except Exception:
+                    pass
+                await self.punish_executor(guild, entry.user, "Role Create", f"Created role @{role.name}")
+                break
 
     @commands.Cog.listener()
     async def on_guild_role_delete(self, role: discord.Role):
-        """Detects unauthorized role deletion."""
         guild = role.guild
         cfg = await self.get_config(guild.id)
         if not cfg or not cfg.get("anti_role", True):
             return
 
-        try:
-            async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.role_delete):
-                if entry.target.id == role.id:
-                    if not await self.is_whitelisted(guild, entry.user.id):
-                        await self.punish_executor(guild, entry.user, "Role Delete", f"Deleted role: `@{role.name}`")
-                    break
-        except Exception:
-            pass
+        await asyncio.sleep(0.5)
+        async for entry in guild.audit_logs(action=discord.AuditLogAction.role_delete, limit=1):
+            if entry.target.id == role.id and entry.user:
+                if await self.is_whitelisted(guild, entry.user.id):
+                    return
+                await self.punish_executor(guild, entry.user, "Role Delete", f"Deleted role @{role.name}")
+                break
 
     @commands.Cog.listener()
     async def on_member_ban(self, guild: discord.Guild, user: Union[discord.User, discord.Member]):
-        """Detects mass/unauthorized bans."""
         cfg = await self.get_config(guild.id)
         if not cfg or not cfg.get("anti_ban", True):
             return
 
-        try:
-            async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.ban):
-                if entry.target.id == user.id:
-                    if not await self.is_whitelisted(guild, entry.user.id):
-                        await self.punish_executor(guild, entry.user, "Member Ban", f"Banned member: {user.mention} (`{user.id}`)")
-                        # Auto unban the victim
-                        try:
-                            await guild.unban(user, reason="Zenith Antinuke: Restoring unlawfully banned member.")
-                        except Exception:
-                            pass
-                    break
-        except Exception:
-            pass
+        await asyncio.sleep(0.5)
+        async for entry in guild.audit_logs(action=discord.AuditLogAction.ban, limit=1):
+            if entry.target.id == user.id and entry.user:
+                if await self.is_whitelisted(guild, entry.user.id):
+                    return
+                try:
+                    await guild.unban(user, reason="Zenith Antinuke: Unauthorized ban revocation.")
+                except Exception:
+                    pass
+                await self.punish_executor(guild, entry.user, "Member Ban", f"Banned user {user} (`{user.id}`)")
+                break
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
-        """Detects unauthorized kicks."""
         guild = member.guild
         cfg = await self.get_config(guild.id)
         if not cfg or not cfg.get("anti_kick", True):
             return
 
-        try:
-            async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.kick):
-                if entry.target.id == member.id:
-                    if not await self.is_whitelisted(guild, entry.user.id):
-                        await self.punish_executor(guild, entry.user, "Member Kick", f"Kicked member: {member.mention} (`{member.id}`)")
-                    break
-        except Exception:
-            pass
+        await asyncio.sleep(0.5)
+        async for entry in guild.audit_logs(action=discord.AuditLogAction.kick, limit=1):
+            if entry.target.id == member.id and entry.user:
+                if await self.is_whitelisted(guild, entry.user.id):
+                    return
+                await self.punish_executor(guild, entry.user, "Member Kick", f"Kicked member {member} (`{member.id}`)")
+                break
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
-        """Prevents unauthorized bot invitations (anti-rogue bot)."""
+        guild = member.guild
         if not member.bot:
             return
 
-        guild = member.guild
         cfg = await self.get_config(guild.id)
         if not cfg or not cfg.get("anti_bot", True):
             return
 
-        try:
-            async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.bot_add):
-                if entry.target.id == member.id:
-                    # Check who invited this bot
-                    inviter = entry.user
-                    if not await self.is_whitelisted(guild, inviter.id):
-                        # Ban the unauthorized bot immediately
-                        await member.ban(reason="Zenith Antinuke: Unauthorized bot addition.")
-                        # Punish the admin who added it
-                        await self.punish_executor(guild, inviter, "Bot Addition", f"Added rogue bot: {member.mention}")
-                    break
-        except Exception:
-            pass
+        await asyncio.sleep(0.5)
+        async for entry in guild.audit_logs(action=discord.AuditLogAction.bot_add, limit=1):
+            if entry.target.id == member.id and entry.user:
+                if await self.is_whitelisted(guild, entry.user.id):
+                    return
+                try:
+                    await member.kick(reason="Zenith Antinuke: Unauthorized bot integration.")
+                except Exception:
+                    pass
+                await self.punish_executor(guild, entry.user, "Bot Add", f"Added unapproved bot {member.mention}")
+                break
 
     @commands.Cog.listener()
     async def on_webhooks_update(self, channel: discord.abc.GuildChannel):
-        """Detects webhook creation or modification attacks."""
         guild = channel.guild
         cfg = await self.get_config(guild.id)
         if not cfg or not cfg.get("anti_webhook", True):
             return
 
-        try:
-            async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.webhook_create):
-                if not await self.is_whitelisted(guild, entry.user.id):
-                    await self.punish_executor(guild, entry.user, "Webhook Create", f"Spawned webhook in `#{channel.name}`")
-                    # Delete the rogue webhook
+        await asyncio.sleep(0.5)
+        async for entry in guild.audit_logs(action=discord.AuditLogAction.webhook_create, limit=1):
+            if entry.user:
+                if await self.is_whitelisted(guild, entry.user.id):
+                    return
+                try:
+                    webhook = discord.utils.get(await channel.webhooks(), id=entry.target.id)
+                    if webhook:
+                        await webhook.delete(reason="Zenith Antinuke: Rogue webhook deletion.")
+                except Exception:
+                    pass
+                await self.punish_executor(guild, entry.user, "Webhook Create", f"Created webhook in #{channel.name}")
+                break
+
+    @commands.Cog.listener()
+    async def on_guild_update(self, before: discord.Guild, after: discord.Guild):
+        cfg = await self.get_config(after.id)
+        if not cfg:
+            return
+
+        async for entry in after.audit_logs(action=discord.AuditLogAction.guild_update, limit=1):
+            if entry.user:
+                if await self.is_whitelisted(after, entry.user.id):
+                    return
+
+                reverted = False
+                # Anti-vanity tamper
+                if before.vanity_url_code != after.vanity_url_code and before.vanity_url_code:
                     try:
-                        wh = entry.target
-                        await wh.delete(reason="Zenith Antinuke: Deleting unauthorized webhook.")
+                        await after.edit(vanity_code=before.vanity_url_code, reason="Zenith Antinuke: Reverting vanity")
+                        reverted = True
                     except Exception:
                         pass
+
+                # Anti-name tamper
+                if before.name != after.name:
+                    try:
+                        await after.edit(name=before.name, reason="Zenith Antinuke: Reverting guild name")
+                        reverted = True
+                    except Exception:
+                        pass
+
+                await self.punish_executor(
+                    after, entry.user, "Guild Update",
+                    f"Tampered with server settings (Name: {after.name}, Reverted: {reverted})"
+                )
                 break
-        except Exception:
-            pass
+
+    @commands.Cog.listener()
+    async def on_bulk_member_prune(self, guild: discord.Guild, count: int):
+        cfg = await self.get_config(guild.id)
+        if not cfg:
+            return
+
+        async for entry in guild.audit_logs(action=discord.AuditLogAction.member_prune, limit=1):
+            if entry.user:
+                if await self.is_whitelisted(guild, entry.user.id):
+                    return
+                await self.punish_executor(guild, entry.user, "Member Prune", f"Pruned {count} members from server")
+                break
+
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message):
+        """Intercept unauthorized @everyone or @here mentions from non-whitelisted members."""
+        if not message.guild or message.author.bot:
+            return
+
+        if message.mention_everyone:
+            if await self.is_whitelisted(message.guild, message.author.id):
+                return
+            cfg = await self.get_config(message.guild.id)
+            if not cfg:
+                return
+
+            try:
+                await message.delete()
+            except Exception:
+                pass
+            await self.punish_executor(
+                message.guild, message.author, "Mention Everyone",
+                f"Attempted mass mention in #{message.channel.name}"
+            )
 
     # ═══════════════════════════════════════════════════════════════
-    #  ANTINUKE COMMAND MANAGEMENT
+    #  COMMAND SUITE
     # ═══════════════════════════════════════════════════════════════
 
-    @commands.group(name="antinuke", aliases=["an", "security"], invoke_without_command=True)
-    @commands.has_permissions(administrator=True)
+    @commands.group(name="antinuke", aliases=["an", "security", "anti", "sec"], invoke_without_command=True)
+    @commands.guild_only()
     async def antinuke_group(self, ctx: commands.Context):
-        """Accesses the Zenith Antinuke dashboard and configuration suite."""
-        row = await db.fetchrow("SELECT * FROM antinuke_config WHERE guild_id = ?", ctx.guild.id)
-        status_text = "ENABLED" if (row and row.get("enabled")) else "DISABLED"
-        punishment = row.get("punishment", "ban").upper() if row else "BAN"
-        log_ch = f"<#{row.get('log_channel')}>" if (row and row.get("log_channel")) else "`None`"
+        """Antinuke system status, controls, and configuration."""
+        if not await is_authorized_admin(ctx.author.id, ctx.guild, self.bot):
+            embed = discord.Embed(
+                title="[ACCESS DENIED]",
+                description="Antinuke controls are strictly reserved for the Server Owner and Extra Owners.",
+                color=ACCENT_COLOR
+            )
+            return await ctx.send(embed=embed)
 
-        embed = ZenithEmbed(
-            title="Zenith Antinuke Dashboard",
-            description=f"Server defense system is currently **{status_text}**.",
-            color=Color.SUCCESS if status_text == "ENABLED" else Color.MUTED
+        cfg = await self.get_config(ctx.guild.id)
+        status = "Active & Armed" if cfg else "Disabled / Disarmed"
+        punish = cfg.get("punishment", "ban").upper() if cfg else "BAN"
+        log_ch = ctx.guild.get_channel(cfg.get("log_channel")) if cfg and cfg.get("log_channel") else None
+        log_str = log_ch.mention if log_ch else "None Configured"
+
+        embed = discord.Embed(
+            title="[ANTINUKE DEFENSE SYSTEM]",
+            description=(
+                "Zenith Antinuke monitors the Discord gateway and audit stream in real time. "
+                "Any unauthorized destructive event triggers immediate autonomous neutralization."
+            ),
+            color=ACCENT_COLOR
         )
-        embed.add_field(name="Punishment Mode", value=f"`{punishment}`", inline=True)
-        embed.add_field(name="Security Log Channel", value=log_ch, inline=True)
+        embed.add_field(name="Defense Status", value=f"`[{status}]`", inline=True)
+        embed.add_field(name="Enforced Sanction", value=f"`{punish}`", inline=True)
+        embed.add_field(name="Security Log Channel", value=log_str, inline=True)
         embed.add_field(
             name="Available Commands",
             value=(
-                f"• `{ctx.prefix}antinuke enable` — Arm server protection\n"
-                f"• `{ctx.prefix}antinuke disable` — Disarm server protection\n"
-                f"• `{ctx.prefix}antinuke punishment <ban|kick>` — Set consequence\n"
-                f"• `{ctx.prefix}antinuke logs <#channel>` — Set security alerts channel\n"
-                f"• `{ctx.prefix}antinuke whitelist <add|remove|list>` — Manage immune admins"
+                f"`{ctx.prefix}antinuke enable` - Arm security protocols\n"
+                f"`{ctx.prefix}antinuke disable` - Disarm security protocols\n"
+                f"`{ctx.prefix}antinuke filters` - View all 16 module statuses\n"
+                f"`{ctx.prefix}antinuke punishment <ban/kick>` - Set penalty\n"
+                f"`{ctx.prefix}antinuke logs <channel>` - Set alert log channel\n"
+                f"`{ctx.prefix}antinuke wl <user>` - Add user to whitelist\n"
+                f"`{ctx.prefix}antinuke unwl <user>` - Remove user from whitelist\n"
+                f"`{ctx.prefix}antinuke wlist` - List whitelisted members\n"
+                f"`{ctx.prefix}antinuke wlreset` - Clear all whitelisted users\n"
+                f"`{ctx.prefix}antinuke snapshot` - Save server backup snapshot\n"
+                f"`{ctx.prefix}antinuke serverrecovery` - Restore server from snapshot\n"
+                f"`{ctx.prefix}extraowner <add/remove/list/reset>` - Manage extra owners"
             ),
             inline=False
         )
-        await ctx.reply(embed=embed, mention_author=False)
+        embed.set_footer(text="Zenith Autonomous Defense | Developed by Shree")
+        await ctx.send(embed=embed)
 
     @antinuke_group.command(name="enable", aliases=["on", "arm"])
-    @commands.has_permissions(administrator=True)
+    @commands.guild_only()
     async def antinuke_enable(self, ctx: commands.Context):
-        """Arms all antinuke protection modules."""
-        if ctx.author.id != ctx.guild.owner_id and ctx.author.id not in self.bot.owner_ids:
-            return await ctx.reply(
-                embed=ZenithEmbed.error("Owner Restricted", "Only the Server Owner can arm or disarm Antinuke."),
-                mention_author=False
-            )
+        """Arm and activate all Antinuke protection protocols."""
+        if not await is_authorized_admin(ctx.author.id, ctx.guild, self.bot):
+            return await ctx.send(embed=discord.Embed(title="[ACCESS DENIED]", description="Restricted to Server Owner.", color=ACCENT_COLOR))
 
-        if db.is_postgres:
-            query = """
-            INSERT INTO antinuke_config (guild_id, enabled) VALUES (?, TRUE)
-            ON CONFLICT (guild_id) DO UPDATE SET enabled = TRUE;
+        if not ctx.guild.me.guild_permissions.administrator:
+            return await ctx.send(embed=discord.Embed(
+                title="[PERMISSION ERROR]",
+                description="I require **Administrator** permission to enforce Antinuke defenses.",
+                color=ACCENT_COLOR
+            ))
+
+        await db.execute(
             """
-        else:
-            query = """
-            INSERT INTO antinuke_config (guild_id, enabled) VALUES (?, TRUE)
-            ON CONFLICT(guild_id) DO UPDATE SET enabled = TRUE;
-            """
-        await db.execute(query, ctx.guild.id)
+            INSERT INTO antinuke_config (guild_id, enabled, punishment, anti_ban, anti_kick, anti_channel, anti_role, anti_bot, anti_webhook)
+            VALUES (?, TRUE, 'ban', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE)
+            ON CONFLICT(guild_id) DO UPDATE SET enabled = TRUE
+            """,
+            ctx.guild.id
+        )
         await db.cache_set(f"antinuke:enabled:{ctx.guild.id}", "1", ttl=300)
 
-        embed = ZenithEmbed.success(
-            "Antinuke Armed",
-            "Zenith is now actively monitoring server audit logs for malicious activity."
+        embed = discord.Embed(
+            title="[ANTINUKE PROTOCOLS ARMED]",
+            description="Autonomous defense engine is active. All server events are now guarded in real time.",
+            color=ACCENT_COLOR
         )
-        await ctx.reply(embed=embed, mention_author=False)
+        embed.set_footer(text="Zenith Security | Developed by Shree")
+        await ctx.send(embed=embed)
 
     @antinuke_group.command(name="disable", aliases=["off", "disarm"])
-    @commands.has_permissions(administrator=True)
+    @commands.guild_only()
     async def antinuke_disable(self, ctx: commands.Context):
-        """Disarms antinuke protection modules."""
-        if ctx.author.id != ctx.guild.owner_id and ctx.author.id not in self.bot.owner_ids:
-            return await ctx.reply(
-                embed=ZenithEmbed.error("Owner Restricted", "Only the Server Owner can arm or disarm Antinuke."),
-                mention_author=False
-            )
+        """Disarm and deactivate Antinuke protection protocols."""
+        if not await is_authorized_admin(ctx.author.id, ctx.guild, self.bot):
+            return await ctx.send(embed=discord.Embed(title="[ACCESS DENIED]", description="Restricted to Server Owner.", color=ACCENT_COLOR))
 
         await db.execute("UPDATE antinuke_config SET enabled = FALSE WHERE guild_id = ?", ctx.guild.id)
         await db.cache_set(f"antinuke:enabled:{ctx.guild.id}", "0", ttl=300)
 
-        embed = ZenithEmbed.warning(
-            "Antinuke Disarmed",
-            "Server protection has been turned off. Be careful when granting administrator roles."
+        embed = discord.Embed(
+            title="[ANTINUKE PROTOCOLS DISARMED]",
+            description="Antinuke protection is now turned off.",
+            color=ACCENT_COLOR
         )
-        await ctx.reply(embed=embed, mention_author=False)
+        embed.set_footer(text="Zenith Security | Developed by Shree")
+        await ctx.send(embed=embed)
+
+    @antinuke_group.command(name="filters", aliases=["modules"])
+    @commands.guild_only()
+    async def antinuke_filters(self, ctx: commands.Context):
+        """Display all protected modules and active status."""
+        if not await is_authorized_admin(ctx.author.id, ctx.guild, self.bot):
+            return await ctx.send(embed=discord.Embed(title="[ACCESS DENIED]", description="Restricted to Server Owner.", color=ACCENT_COLOR))
+
+        cfg = await self.get_config(ctx.guild.id)
+        enabled_str = "ENABLED" if cfg else "DISABLED"
+
+        lines = [f"• **{name}:** `[{enabled_str}]`" for code, name in MODULE_NAMES.items()]
+        embed = discord.Embed(
+            title="[SECURITY MODULE REGISTRY]",
+            description="\n".join(lines),
+            color=ACCENT_COLOR
+        )
+        embed.set_footer(text="Zenith Autonomous Defense | Developed by Shree")
+        await ctx.send(embed=embed)
 
     @antinuke_group.command(name="punishment", aliases=["punish", "action"])
-    @commands.has_permissions(administrator=True)
+    @commands.guild_only()
     async def antinuke_punishment(self, ctx: commands.Context, mode: str):
-        """Sets the penalty applied to offenders (ban or kick)."""
+        """Set penalty for offenders: ban or kick."""
+        if not await is_authorized_admin(ctx.author.id, ctx.guild, self.bot):
+            return await ctx.send(embed=discord.Embed(title="[ACCESS DENIED]", description="Restricted to Server Owner.", color=ACCENT_COLOR))
+
         mode = mode.lower()
         if mode not in ("ban", "kick"):
-            return await ctx.reply(
-                embed=ZenithEmbed.error("Invalid Option", "Punishment must be either `ban` or `kick`."),
-                mention_author=False
-            )
+            return await ctx.send(embed=discord.Embed(title="[INVALID OPTION]", description="Specify either `ban` or `kick`.", color=ACCENT_COLOR))
 
         await db.execute("UPDATE antinuke_config SET punishment = ? WHERE guild_id = ?", mode, ctx.guild.id)
-        embed = ZenithEmbed.success("Punishment Updated", f"Antinuke penalty is now set to **{mode.upper()}**.")
-        await ctx.reply(embed=embed, mention_author=False)
+        embed = discord.Embed(
+            title="[PUNISHMENT UPDATED]",
+            description=f"Antinuke penalty is now set to **{mode.upper()}**.",
+            color=ACCENT_COLOR
+        )
+        embed.set_footer(text="Zenith Security | Developed by Shree")
+        await ctx.send(embed=embed)
 
     @antinuke_group.command(name="logs", aliases=["channel"])
-    @commands.has_permissions(administrator=True)
+    @commands.guild_only()
     async def antinuke_logs(self, ctx: commands.Context, channel: discord.TextChannel):
-        """Sets the destination channel for antinuke incident alerts."""
+        """Set destination channel for incident alerts."""
+        if not await is_authorized_admin(ctx.author.id, ctx.guild, self.bot):
+            return await ctx.send(embed=discord.Embed(title="[ACCESS DENIED]", description="Restricted to Server Owner.", color=ACCENT_COLOR))
+
         await db.execute("UPDATE antinuke_config SET log_channel = ? WHERE guild_id = ?", channel.id, ctx.guild.id)
-        embed = ZenithEmbed.success("Alert Channel Configured", f"Security logs will now be broadcast to {channel.mention}.")
-        await ctx.reply(embed=embed, mention_author=False)
-
-    @antinuke_group.group(name="whitelist", aliases=["wl"], invoke_without_command=True)
-    @commands.has_permissions(administrator=True)
-    async def whitelist_group(self, ctx: commands.Context):
-        """Manages the list of trusted administrators immune to antinuke triggers."""
-        rows = await db.fetch("SELECT user_id FROM antinuke_whitelist WHERE guild_id = ?", ctx.guild.id)
-        if not rows:
-            desc = "No extra users are currently whitelisted. Only the **Server Owner** is immune."
-        else:
-            desc = "\n".join(f"• <@{r['user_id']}> (`{r['user_id']}`)" for r in rows)
-
-        embed = ZenithEmbed(
-            title="Antinuke Whitelist Directory",
-            description=desc,
-            color=Color.PRIMARY
+        embed = discord.Embed(
+            title="[LOG CHANNEL CONFIGURED]",
+            description=f"Security alerts will now be dispatched to {channel.mention}.",
+            color=ACCENT_COLOR
         )
-        await ctx.reply(embed=embed, mention_author=False)
+        embed.set_footer(text="Zenith Security | Developed by Shree")
+        await ctx.send(embed=embed)
 
-    @whitelist_group.command(name="add")
-    @commands.has_permissions(administrator=True)
-    async def whitelist_add(self, ctx: commands.Context, user: discord.User):
-        """Grants antinuke immunity to a trusted administrator."""
-        if ctx.author.id != ctx.guild.owner_id and ctx.author.id not in self.bot.owner_ids:
-            return await ctx.reply(
-                embed=ZenithEmbed.error("Owner Restricted", "Only the Server Owner can grant whitelist immunity."),
-                mention_author=False
-            )
+    # ═══════════════════════════════════════════════════════════════
+    #  WHITELIST SUITE
+    # ═══════════════════════════════════════════════════════════════
 
-        if db.is_postgres:
-            query = """
-            INSERT INTO antinuke_whitelist (guild_id, user_id) VALUES (?, ?)
-            ON CONFLICT (guild_id, user_id) DO NOTHING;
+    @antinuke_group.command(name="wl", aliases=["whitelist"])
+    @commands.guild_only()
+    async def antinuke_wl(self, ctx: commands.Context, user: discord.User):
+        """Grant antinuke immunity to an administrator."""
+        if not await is_authorized_admin(ctx.author.id, ctx.guild, self.bot):
+            return await ctx.send(embed=discord.Embed(title="[ACCESS DENIED]", description="Only the Server Owner can whitelist users.", color=ACCENT_COLOR))
+
+        await db.execute(
             """
-        else:
-            query = """
             INSERT INTO antinuke_whitelist (guild_id, user_id) VALUES (?, ?)
-            ON CONFLICT(guild_id, user_id) DO NOTHING;
-            """
-        await db.execute(query, ctx.guild.id, user.id)
+            ON CONFLICT(guild_id, user_id) DO NOTHING
+            """,
+            ctx.guild.id, user.id
+        )
         await db.cache_set(f"whitelist:{ctx.guild.id}:{user.id}", 1, ttl=300)
 
-        embed = ZenithEmbed.success("User Whitelisted", f"{user.mention} is now immune to Antinuke triggers.")
-        await ctx.reply(embed=embed, mention_author=False)
+        embed = discord.Embed(
+            title="[USER WHITELISTED]",
+            description=f"{user.mention} (`{user.id}`) is now immune to Antinuke triggers.",
+            color=ACCENT_COLOR
+        )
+        embed.set_footer(text="Zenith Security | Developed by Shree")
+        await ctx.send(embed=embed)
 
-    @whitelist_group.command(name="remove", aliases=["del"])
-    @commands.has_permissions(administrator=True)
-    async def whitelist_remove(self, ctx: commands.Context, user: discord.User):
-        """Revokes antinuke immunity from an administrator."""
-        if ctx.author.id != ctx.guild.owner_id and ctx.author.id not in self.bot.owner_ids:
-            return await ctx.reply(
-                embed=ZenithEmbed.error("Owner Restricted", "Only the Server Owner can revoke whitelist immunity."),
-                mention_author=False
-            )
+    @antinuke_group.command(name="unwl", aliases=["unwhitelist"])
+    @commands.guild_only()
+    async def antinuke_unwl(self, ctx: commands.Context, user: discord.User):
+        """Revoke antinuke immunity from a user."""
+        if not await is_authorized_admin(ctx.author.id, ctx.guild, self.bot):
+            return await ctx.send(embed=discord.Embed(title="[ACCESS DENIED]", description="Only the Server Owner can revoke immunity.", color=ACCENT_COLOR))
 
         await db.execute("DELETE FROM antinuke_whitelist WHERE guild_id = ? AND user_id = ?", ctx.guild.id, user.id)
         await db.cache_delete(f"whitelist:{ctx.guild.id}:{user.id}")
 
-        embed = ZenithEmbed.success("Immunity Revoked", f"{user.mention} has been removed from the whitelist.")
-        await ctx.reply(embed=embed, mention_author=False)
+        embed = discord.Embed(
+            title="[IMMUNITY REVOKED]",
+            description=f"Removed {user.mention} (`{user.id}`) from the whitelist.",
+            color=ACCENT_COLOR
+        )
+        embed.set_footer(text="Zenith Security | Developed by Shree")
+        await ctx.send(embed=embed)
+
+    @antinuke_group.command(name="wlist", aliases=["whitelisted"])
+    @commands.guild_only()
+    async def antinuke_wlist(self, ctx: commands.Context):
+        """List all whitelisted members in this server."""
+        if not await is_authorized_admin(ctx.author.id, ctx.guild, self.bot):
+            return await ctx.send(embed=discord.Embed(title="[ACCESS DENIED]", description="Restricted to Server Owner.", color=ACCENT_COLOR))
+
+        rows = await db.fetch("SELECT user_id FROM antinuke_whitelist WHERE guild_id = ?", ctx.guild.id)
+        if not rows:
+            desc = "No users are currently whitelisted. Only the **Server Owner** is immune."
+        else:
+            desc = "\n".join(f"• <@{r['user_id']}> (`{r['user_id']}`)" for r in rows)
+
+        embed = discord.Embed(
+            title="[ANTINUKE WHITELIST REGISTRY]",
+            description=desc,
+            color=ACCENT_COLOR
+        )
+        embed.set_footer(text="Zenith Security | Developed by Shree")
+        await ctx.send(embed=embed)
+
+    @antinuke_group.command(name="wlreset")
+    @commands.guild_only()
+    async def antinuke_wlreset(self, ctx: commands.Context):
+        """Clear all whitelisted users for this server."""
+        if not await is_authorized_admin(ctx.author.id, ctx.guild, self.bot):
+            return await ctx.send(embed=discord.Embed(title="[ACCESS DENIED]", description="Restricted to Server Owner.", color=ACCENT_COLOR))
+
+        await db.execute("DELETE FROM antinuke_whitelist WHERE guild_id = ?", ctx.guild.id)
+        embed = discord.Embed(
+            title="[WHITELIST RESET]",
+            description="All whitelisted users have been cleared.",
+            color=ACCENT_COLOR
+        )
+        embed.set_footer(text="Zenith Security | Developed by Shree")
+        await ctx.send(embed=embed)
+
+    # ═══════════════════════════════════════════════════════════════
+    #  SNAPSHOT & SERVER DISASTER RECOVERY
+    # ═══════════════════════════════════════════════════════════════
+
+    @antinuke_group.command(name="snapshot", aliases=["backup"])
+    @commands.guild_only()
+    async def antinuke_snapshot(self, ctx: commands.Context):
+        """Capture a complete snapshot of server channels and roles for disaster recovery."""
+        if not await is_authorized_admin(ctx.author.id, ctx.guild, self.bot):
+            return await ctx.send(embed=discord.Embed(title="[ACCESS DENIED]", description="Restricted to Server Owner.", color=ACCENT_COLOR))
+
+        status_msg = await ctx.send(embed=discord.Embed(
+            title="[CREATING SNAPSHOT]",
+            description="Serializing channel hierarchies, roles, and permission overwrites...",
+            color=ACCENT_COLOR
+        ))
+
+        channels_data = []
+        for ch in ctx.guild.channels:
+            channels_data.append({
+                "name": ch.name,
+                "type": str(ch.type),
+                "position": ch.position,
+                "category": ch.category.name if ch.category else None,
+            })
+
+        roles_data = []
+        for r in ctx.guild.roles:
+            if not r.is_default() and not r.managed:
+                roles_data.append({
+                    "name": r.name,
+                    "color": r.colour.value,
+                    "hoist": r.hoist,
+                    "permissions": r.permissions.value,
+                })
+
+        payload = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "guild_name": ctx.guild.name,
+            "channels": channels_data,
+            "roles": roles_data,
+        }
+
+        json_str = json.dumps(payload)
+        await db.execute(
+            """
+            INSERT INTO server_snapshots (guild_id, data_json) VALUES (?, ?)
+            ON CONFLICT(guild_id) DO UPDATE SET data_json = excluded.data_json
+            """,
+            ctx.guild.id, json_str
+        )
+
+        embed = discord.Embed(
+            title="[SERVER SNAPSHOT STORED]",
+            description=(
+                f"Successfully saved server snapshot.\n"
+                f"• Channels Backed Up: `{len(channels_data)}`\n"
+                f"• Roles Backed Up: `{len(roles_data)}`\n"
+                f"To restore after an incident, run `{ctx.prefix}antinuke serverrecovery`."
+            ),
+            color=ACCENT_COLOR
+        )
+        embed.set_footer(text="Zenith Disaster Recovery | Developed by Shree")
+        await status_msg.edit(embed=embed)
+
+    @antinuke_group.command(name="serverrecovery", aliases=["recover", "restore"])
+    @commands.guild_only()
+    async def antinuke_serverrecovery(self, ctx: commands.Context):
+        """Reconstruct channels and roles from the most recent backup snapshot."""
+        if not await is_authorized_admin(ctx.author.id, ctx.guild, self.bot):
+            return await ctx.send(embed=discord.Embed(title="[ACCESS DENIED]", description="Restricted to Server Owner.", color=ACCENT_COLOR))
+
+        row = await db.fetchrow("SELECT data_json, created_at FROM server_snapshots WHERE guild_id = ?", ctx.guild.id)
+        if not row:
+            return await ctx.send(embed=discord.Embed(
+                title="[NO SNAPSHOT FOUND]",
+                description=f"No backup snapshot found. Create one with `{ctx.prefix}antinuke snapshot`.",
+                color=ACCENT_COLOR
+            ))
+
+        data = json.loads(row["data_json"])
+        status_msg = await ctx.send(embed=discord.Embed(
+            title="[DISASTER RECOVERY INITIATED]",
+            description="Rebuilding missing roles and channels from stored backup...",
+            color=ACCENT_COLOR
+        ))
+
+        # 1. Restore missing roles
+        existing_role_names = {r.name for r in ctx.guild.roles}
+        restored_roles = 0
+        for r_info in data.get("roles", []):
+            if r_info["name"] not in existing_role_names:
+                try:
+                    await ctx.guild.create_role(
+                        name=r_info["name"],
+                        colour=discord.Colour(r_info["color"]),
+                        hoist=r_info["hoist"],
+                        reason="Zenith Antinuke Disaster Recovery"
+                    )
+                    restored_roles += 1
+                    await asyncio.sleep(0.3)
+                except Exception:
+                    pass
+
+        # 2. Restore missing channels
+        existing_ch_names = {c.name for c in ctx.guild.channels}
+        restored_channels = 0
+        for ch_info in data.get("channels", []):
+            if ch_info["name"] not in existing_ch_names:
+                try:
+                    if "text" in ch_info["type"]:
+                        await ctx.guild.create_text_channel(name=ch_info["name"], reason="Zenith Antinuke Disaster Recovery")
+                        restored_channels += 1
+                    elif "voice" in ch_info["type"]:
+                        await ctx.guild.create_voice_channel(name=ch_info["name"], reason="Zenith Antinuke Disaster Recovery")
+                        restored_channels += 1
+                    await asyncio.sleep(0.3)
+                except Exception:
+                    pass
+
+        embed = discord.Embed(
+            title="[SERVER RECOVERY COMPLETE]",
+            description=(
+                f"Disaster recovery restored server infrastructure:\n"
+                f"• Restored Roles: `{restored_roles}`\n"
+                f"• Restored Channels: `{restored_channels}`"
+            ),
+            color=ACCENT_COLOR
+        )
+        embed.set_footer(text="Zenith Disaster Recovery | Developed by Shree")
+        await status_msg.edit(embed=embed)
+
+
+class ExtraOwner(commands.Cog):
+    """Extra Owner administration suite."""
+
+    def __init__(self, bot: commands.Bot):
+        self.bot = bot
+
+    @commands.group(name="extraowner", aliases=["eo"], invoke_without_command=True)
+    @commands.guild_only()
+    async def extraowner_group(self, ctx: commands.Context):
+        """Manage server Extra Owners."""
+        if ctx.author.id != ctx.guild.owner_id and ctx.author.id not in config.OWNER_IDS:
+            return await ctx.send(embed=discord.Embed(
+                title="[ACCESS DENIED]",
+                description="Extra Owner commands are strictly restricted to the **Server Owner**.",
+                color=ACCENT_COLOR
+            ))
+
+        rows = await db.fetch("SELECT owner_id FROM extraowners WHERE guild_id = ?", ctx.guild.id)
+        if not rows:
+            desc = "No Extra Owners configured for this server."
+        else:
+            desc = "\n".join(f"• <@{r['owner_id']}> (`{r['owner_id']}`)" for r in rows)
+
+        embed = discord.Embed(
+            title="[EXTRA OWNER DIRECTORY]",
+            description=desc,
+            color=ACCENT_COLOR
+        )
+        embed.add_field(
+            name="Commands",
+            value=(
+                f"`{ctx.prefix}extraowner add <user>` - Add extra owner\n"
+                f"`{ctx.prefix}extraowner remove <user>` - Remove extra owner\n"
+                f"`{ctx.prefix}extraowner reset` - Clear all extra owners"
+            ),
+            inline=False
+        )
+        embed.set_footer(text="Zenith Security | Developed by Shree")
+        await ctx.send(embed=embed)
+
+    @extraowner_group.command(name="add")
+    @commands.guild_only()
+    async def eo_add(self, ctx: commands.Context, user: discord.User):
+        """Add a trusted administrator as an Extra Owner."""
+        if ctx.author.id != ctx.guild.owner_id and ctx.author.id not in config.OWNER_IDS:
+            return await ctx.send(embed=discord.Embed(title="[ACCESS DENIED]", description="Only the Server Owner can add Extra Owners.", color=ACCENT_COLOR))
+
+        await db.execute(
+            """
+            INSERT INTO extraowners (guild_id, owner_id) VALUES (?, ?)
+            ON CONFLICT(guild_id, owner_id) DO NOTHING
+            """,
+            ctx.guild.id, user.id
+        )
+
+        embed = discord.Embed(
+            title="[EXTRA OWNER REGISTERED]",
+            description=f"{user.mention} (`{user.id}`) is now registered as an Extra Owner.",
+            color=ACCENT_COLOR
+        )
+        embed.set_footer(text="Zenith Security | Developed by Shree")
+        await ctx.send(embed=embed)
+
+    @extraowner_group.command(name="remove", aliases=["rm", "del"])
+    @commands.guild_only()
+    async def eo_remove(self, ctx: commands.Context, user: discord.User):
+        """Remove a user from Extra Owner registry."""
+        if ctx.author.id != ctx.guild.owner_id and ctx.author.id not in config.OWNER_IDS:
+            return await ctx.send(embed=discord.Embed(title="[ACCESS DENIED]", description="Only the Server Owner can remove Extra Owners.", color=ACCENT_COLOR))
+
+        await db.execute("DELETE FROM extraowners WHERE guild_id = ? AND owner_id = ?", ctx.guild.id, user.id)
+        embed = discord.Embed(
+            title="[EXTRA OWNER REMOVED]",
+            description=f"Removed {user.mention} (`{user.id}`) from Extra Owner registry.",
+            color=ACCENT_COLOR
+        )
+        embed.set_footer(text="Zenith Security | Developed by Shree")
+        await ctx.send(embed=embed)
+
+    @extraowner_group.command(name="reset")
+    @commands.guild_only()
+    async def eo_reset(self, ctx: commands.Context):
+        """Clear all Extra Owners."""
+        if ctx.author.id != ctx.guild.owner_id and ctx.author.id not in config.OWNER_IDS:
+            return await ctx.send(embed=discord.Embed(title="[ACCESS DENIED]", description="Only the Server Owner can reset Extra Owners.", color=ACCENT_COLOR))
+
+        await db.execute("DELETE FROM extraowners WHERE guild_id = ?", ctx.guild.id)
+        embed = discord.Embed(
+            title="[EXTRA OWNERS RESET]",
+            description="All Extra Owners have been cleared.",
+            color=ACCENT_COLOR
+        )
+        embed.set_footer(text="Zenith Security | Developed by Shree")
+        await ctx.send(embed=embed)
 
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Antinuke(bot))
+    await bot.add_cog(ExtraOwner(bot))

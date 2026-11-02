@@ -262,6 +262,110 @@ class Database:
                 end_time REAL NOT NULL,
                 ended BOOLEAN DEFAULT FALSE
             );
+            """,
+            # Mainrole protection
+            """
+            CREATE TABLE IF NOT EXISTS main_roles (
+                guild_id BIGINT NOT NULL,
+                role_id BIGINT NOT NULL,
+                PRIMARY KEY (guild_id, role_id)
+            );
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS mainrole_config (
+                guild_id BIGINT PRIMARY KEY,
+                channel_id BIGINT DEFAULT NULL
+            );
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS mainrole_logs (
+                id SERIAL PRIMARY KEY,
+                guild_id BIGINT NOT NULL,
+                action VARCHAR(50) NOT NULL,
+                details TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """ if self.is_postgres else """
+            CREATE TABLE IF NOT EXISTS mainrole_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id BIGINT NOT NULL,
+                action VARCHAR(50) NOT NULL,
+                details TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """,
+            # Anti-betray system
+            """
+            CREATE TABLE IF NOT EXISTS antibetray_config (
+                guild_id BIGINT PRIMARY KEY,
+                enabled BOOLEAN DEFAULT FALSE,
+                threshold INT DEFAULT 3,
+                window_sec INT DEFAULT 5,
+                action VARCHAR(20) DEFAULT 'ban',
+                channel_id BIGINT DEFAULT NULL
+            );
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS antibetray_logs (
+                id SERIAL PRIMARY KEY,
+                guild_id BIGINT NOT NULL,
+                user_id BIGINT NOT NULL,
+                user_name VARCHAR(100) NOT NULL,
+                action VARCHAR(50) NOT NULL,
+                details TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """ if self.is_postgres else """
+            CREATE TABLE IF NOT EXISTS antibetray_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id BIGINT NOT NULL,
+                user_id BIGINT NOT NULL,
+                user_name VARCHAR(100) NOT NULL,
+                action VARCHAR(50) NOT NULL,
+                details TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """,
+            # Fake permissions system
+            """
+            CREATE TABLE IF NOT EXISTS fp_config (
+                guild_id BIGINT PRIMARY KEY,
+                role_id BIGINT DEFAULT NULL
+            );
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS fp_limits (
+                guild_id BIGINT NOT NULL,
+                action VARCHAR(32) NOT NULL,
+                action_limit INT DEFAULT 0,
+                PRIMARY KEY (guild_id, action)
+            );
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS fp_usage (
+                guild_id BIGINT NOT NULL,
+                user_id BIGINT NOT NULL,
+                action VARCHAR(32) NOT NULL,
+                usage_count INT DEFAULT 0,
+                date_str VARCHAR(20) NOT NULL,
+                PRIMARY KEY (guild_id, user_id, action, date_str)
+            );
+            """,
+            # Extra owners
+            """
+            CREATE TABLE IF NOT EXISTS extraowners (
+                guild_id BIGINT NOT NULL,
+                owner_id BIGINT NOT NULL,
+                PRIMARY KEY (guild_id, owner_id)
+            );
+            """,
+            # Server recovery snapshots
+            """
+            CREATE TABLE IF NOT EXISTS server_snapshots (
+                guild_id BIGINT PRIMARY KEY,
+                data_json TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
             """
         ]
 

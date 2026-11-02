@@ -1,17 +1,22 @@
 """
-Server moderation suite.
-Includes bans, kicks, timeouts, warnings, channel locks, purges, and role tools.
+Server moderation suite for Zenith.
+Includes bans, kicks, timeouts, warnings, channel lockdowns, visibility controls,
+purges, channel cloning, nuke, snipe, mass unban, and emoji stealing.
+Developed by Shree (Discord ID: 1465912900710305822).
 """
 
 import re
+import io
 import asyncio
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Dict, Any
 
+import aiohttp
 import discord
 from discord.ext import commands
 
 from core.database import db
+from core.security import is_authorized_admin
 from ui.embeds import ZenithEmbed
 from ui.colors import Color
 from core.config import config
@@ -42,7 +47,7 @@ class Moderation(commands.Cog):
 
     def _check_hierarchy(self, moderator: discord.Member, target: discord.Member) -> bool:
         """Enforces that the moderator stands higher in the role hierarchy than the target."""
-        if moderator.guild.owner_id == moderator.id:
+        if moderator.guild.owner_id == moderator.id or moderator.id in config.OWNER_IDS:
             return True
         return moderator.top_role > target.top_role
 
@@ -61,7 +66,6 @@ class Moderation(commands.Cog):
             if not self._check_hierarchy(ctx.guild.me, target):
                 return await ctx.reply(embed=ZenithEmbed.error("Bot Hierarchy Error", "I cannot ban this user because their role is above mine."), mention_author=False)
 
-        # Attempt to notify victim via DM
         try:
             await target.send(embed=ZenithEmbed.error(f"Banned from {ctx.guild.name}", f"**Reason:** {reason}"))
         except Exception:
@@ -97,179 +101,435 @@ class Moderation(commands.Cog):
     @commands.command(name="kick", aliases=["k"])
     @commands.has_permissions(kick_members=True)
     @commands.bot_has_permissions(kick_members=True)
-    async def kick_command(self, ctx: commands.Context, member: discord.Member, *, reason: Optional[str] = "No reason provided."):
-        """Ejects a member from the guild."""
-        if not self._check_hierarchy(ctx.author, member) or not self._check_hierarchy(ctx.guild.me, member):
-            return await ctx.reply(embed=ZenithEmbed.error("Hierarchy Error", "Cannot kick this user due to role positioning."), mention_author=False)
+    async def kick_command(self, ctx: commands.Context, target: discord.Member, *, reason: Optional[str] = "No reason provided."):
+        """Kicks a member from the guild."""
+        if not self._check_hierarchy(ctx.author, target):
+            return await ctx.reply(embed=ZenithEmbed.error("Hierarchy Error", "Target user has equal or higher roles than you."), mention_author=False)
+        if not self._check_hierarchy(ctx.guild.me, target):
+            return await ctx.reply(embed=ZenithEmbed.error("Bot Hierarchy Error", "Target user has higher roles than the bot."), mention_author=False)
 
         try:
-            await member.send(embed=ZenithEmbed.warning(f"Kicked from {ctx.guild.name}", f"**Reason:** {reason}"))
+            await target.send(embed=ZenithEmbed.error(f"Kicked from {ctx.guild.name}", f"**Reason:** {reason}"))
         except Exception:
             pass
 
-        await member.kick(reason=f"Zenith Kick [{ctx.author}]: {reason}")
-        embed = ZenithEmbed.success("Member Kicked", f"Successfully kicked **{member}**.\n**Reason:** {reason}")
+        await target.kick(reason=f"Zenith Mod [{ctx.author}]: {reason}")
+        embed = ZenithEmbed.success("Member Kicked", f"Successfully kicked **{target}** (`{target.id}`).\n**Reason:** {reason}")
         await ctx.reply(embed=embed, mention_author=False)
 
     @commands.command(name="timeout", aliases=["mute", "shutup"])
     @commands.has_permissions(moderate_members=True)
     @commands.bot_has_permissions(moderate_members=True)
-    async def timeout_command(self, ctx: commands.Context, member: discord.Member, duration: str = "10m", *, reason: Optional[str] = "No reason provided."):
-        """Applies a Discord timeout mute (e.g., 5m, 1h, 1d). Max 28 days."""
-        delta = parse_duration(duration)
-        if not delta:
-            return await ctx.reply(embed=ZenithEmbed.error("Invalid Duration", "Please provide a valid time format like `10m`, `2h`, or `1d`."), mention_author=False)
-
+    async def timeout_command(self, ctx: commands.Context, member: discord.Member, duration_str: str, *, reason: Optional[str] = "No reason provided."):
+        """Places a member in Discord communication timeout."""
         if not self._check_hierarchy(ctx.author, member) or not self._check_hierarchy(ctx.guild.me, member):
-            return await ctx.reply(embed=ZenithEmbed.error("Hierarchy Error", "Cannot timeout this user due to role hierarchy."), mention_author=False)
+            return await ctx.reply(embed=ZenithEmbed.error("Hierarchy Error", "Role positions prevent moderating this user."), mention_author=False)
 
-        until = datetime.now(timezone.utc) + delta
+        delta = parse_duration(duration_str)
+        if not delta or delta.total_seconds() > 2419200:  # 28 days max Discord limit
+            return await ctx.reply(embed=ZenithEmbed.error("Invalid Duration", "Specify duration like `10m`, `2h`, `7d` (max 28 days)."), mention_author=False)
+
+        until = discord.utils.utcnow() + delta
         await member.timeout(until, reason=f"Zenith Timeout [{ctx.author}]: {reason}")
-        embed = ZenithEmbed.success("Member Timed Out", f"Applied timeout to **{member}** for **{duration}**.\n**Reason:** {reason}")
+        embed = ZenithEmbed.success("Member Timed Out", f"Applied timeout to **{member}** for **{duration_str}**.\n**Reason:** {reason}")
         await ctx.reply(embed=embed, mention_author=False)
 
     @commands.command(name="untimeout", aliases=["unmute"])
     @commands.has_permissions(moderate_members=True)
     @commands.bot_has_permissions(moderate_members=True)
-    async def untimeout_command(self, ctx: commands.Context, member: discord.Member, *, reason: Optional[str] = "No reason provided."):
-        """Lifts an active timeout from a member."""
+    async def untimeout_command(self, ctx: commands.Context, member: discord.Member, *, reason: Optional[str] = "Mute lifted by moderator."):
+        """Removes an active timeout from a member."""
+        if not self._check_hierarchy(ctx.author, member) or not self._check_hierarchy(ctx.guild.me, member):
+            return await ctx.reply(embed=ZenithEmbed.error("Hierarchy Error", "Cannot remove timeout due to role positions."), mention_author=False)
+
         await member.timeout(None, reason=f"Zenith Untimeout [{ctx.author}]: {reason}")
-        embed = ZenithEmbed.success("Timeout Lifted", f"Removed timeout from **{member}**.")
+        embed = ZenithEmbed.success("Timeout Lifted", f"Removed timeout restriction from **{member}**.")
         await ctx.reply(embed=embed, mention_author=False)
 
+    @commands.command(name="unbanall")
+    @commands.has_permissions(administrator=True)
+    @commands.bot_has_permissions(ban_members=True)
+    async def unbanall_command(self, ctx: commands.Context):
+        """Mass unban all banned members from the server."""
+        if not await is_authorized_admin(ctx.author.id, ctx.guild, self.bot):
+            return await ctx.reply(embed=ZenithEmbed.error("Access Denied", "Unbanall is restricted to the Server Owner."), mention_author=False)
+
+        bans = [entry async for entry in ctx.guild.bans(limit=2000)]
+        if not bans:
+            return await ctx.reply(embed=ZenithEmbed.info("No Bans", "There are no banned users in this server."), mention_author=False)
+
+        status_msg = await ctx.reply(embed=ZenithEmbed.info("Processing Unbanall", f"Unbanning **{len(bans)}** users with safe rate limits..."), mention_author=False)
+
+        count = 0
+        failed = 0
+        for entry in bans:
+            try:
+                await ctx.guild.unban(entry.user, reason=f"Zenith Mass Unban [{ctx.author}]")
+                count += 1
+            except Exception:
+                failed += 1
+            await asyncio.sleep(0.4)
+
+        await status_msg.edit(embed=ZenithEmbed.success(
+            "Unbanall Complete",
+            f"Successfully unbanned **{count}** users.\nFailed/Skipped: **{failed}**."
+        ))
+
     # ═══════════════════════════════════════════════════════════════
-    #  WARNING SUBSYSTEM
+    #  WARNING SYSTEM
     # ═══════════════════════════════════════════════════════════════
 
     @commands.command(name="warn")
     @commands.has_permissions(moderate_members=True)
-    async def warn_command(self, ctx: commands.Context, member: discord.Member, *, reason: str):
-        """Records an official warning against a member."""
-        if not self._check_hierarchy(ctx.author, member):
-            return await ctx.reply(embed=ZenithEmbed.error("Hierarchy Error", "You cannot warn a member above your rank."), mention_author=False)
+    async def warn_command(self, ctx: commands.Context, target: discord.Member, *, reason: Optional[str] = "Rule infraction"):
+        """Issues an official moderation warning recorded in database."""
+        if not self._check_hierarchy(ctx.author, target):
+            return await ctx.reply(embed=ZenithEmbed.error("Hierarchy Error", "Cannot warn someone with equal or higher roles."), mention_author=False)
 
-        query = "INSERT INTO user_warnings (guild_id, user_id, moderator_id, reason) VALUES (?, ?, ?, ?)"
-        await db.execute(query, ctx.guild.id, member.id, ctx.author.id, reason)
-
-        # Count total warnings
-        count_row = await db.fetchrow(
-            "SELECT COUNT(*) as total FROM user_warnings WHERE guild_id = ? AND user_id = ?",
-            ctx.guild.id, member.id
+        await db.execute(
+            "INSERT INTO user_warnings (guild_id, user_id, moderator_id, reason) VALUES (?, ?, ?, ?)",
+            ctx.guild.id, target.id, ctx.author.id, reason
         )
-        total = count_row["total"] if count_row else 1
+
+        rows = await db.fetch("SELECT id FROM user_warnings WHERE guild_id = ? AND user_id = ?", ctx.guild.id, target.id)
+        total_warns = len(rows)
 
         try:
-            await member.send(embed=ZenithEmbed.warning(f"Warned in {ctx.guild.name}", f"**Reason:** {reason}\n**Total Infractions:** {total}"))
+            await target.send(embed=ZenithEmbed.error(
+                f"Warning Issued in {ctx.guild.name}",
+                f"**Reason:** {reason}\n**Total Warnings:** {total_warns}"
+            ))
         except Exception:
             pass
 
-        embed = ZenithEmbed.success("Warning Issued", f"Logged warning for {member.mention} (Infraction #{total}).\n**Reason:** {reason}")
+        embed = ZenithEmbed.success(
+            "Warning Logged",
+            f"Logged warning for {target.mention} (`{target.id}`).\n**Reason:** {reason}\n**Total Infractions:** {total_warns}"
+        )
         await ctx.reply(embed=embed, mention_author=False)
+
+    @commands.command(name="unwarn")
+    @commands.has_permissions(moderate_members=True)
+    async def unwarn_command(self, ctx: commands.Context, target: discord.Member, warn_id: Optional[int] = None):
+        """Remove a specific warning by ID, or the most recent warning for a member."""
+        if warn_id:
+            row = await db.fetchrow(
+                "SELECT id FROM user_warnings WHERE guild_id = ? AND user_id = ? AND id = ?",
+                ctx.guild.id, target.id, warn_id
+            )
+            if not row:
+                return await ctx.reply(embed=ZenithEmbed.error("Warning Not Found", f"No warning with ID `{warn_id}` found for {target.mention}."), mention_author=False)
+            await db.execute("DELETE FROM user_warnings WHERE id = ?", warn_id)
+            return await ctx.reply(embed=ZenithEmbed.success("Warning Cleared", f"Removed warning `{warn_id}` from {target.mention}."), mention_author=False)
+
+        # Remove most recent warning
+        row = await db.fetchrow(
+            "SELECT id FROM user_warnings WHERE guild_id = ? AND user_id = ? ORDER BY id DESC LIMIT 1",
+            ctx.guild.id, target.id
+        )
+        if not row:
+            return await ctx.reply(embed=ZenithEmbed.info("No Warnings", f"{target.mention} has zero logged warnings."), mention_author=False)
+
+        await db.execute("DELETE FROM user_warnings WHERE id = ?", row["id"])
+        await ctx.reply(embed=ZenithEmbed.success("Warning Cleared", f"Removed recent warning (ID `{row['id']}`) from {target.mention}."), mention_author=False)
+
+    @commands.command(name="delwarn", aliases=["dewarn", "removewarn"])
+    @commands.has_permissions(moderate_members=True)
+    async def delwarn_command(self, ctx: commands.Context, warn_id: int):
+        """Delete a specific warning record by warning ID."""
+        row = await db.fetchrow("SELECT id, user_id FROM user_warnings WHERE guild_id = ? AND id = ?", ctx.guild.id, warn_id)
+        if not row:
+            return await ctx.reply(embed=ZenithEmbed.error("Not Found", f"No warning found with ID `{warn_id}`."), mention_author=False)
+
+        await db.execute("DELETE FROM user_warnings WHERE id = ?", warn_id)
+        await ctx.reply(embed=ZenithEmbed.success("Warning Deleted", f"Deleted warning record `{warn_id}`."), mention_author=False)
 
     @commands.command(name="warnings", aliases=["warns"])
     @commands.has_permissions(moderate_members=True)
-    async def warnings_command(self, ctx: commands.Context, member: discord.Member):
-        """Retrieves a member's warning history."""
+    async def warnings_command(self, ctx: commands.Context, target: Optional[discord.Member] = None):
+        """Lists historical warnings and infraction IDs for a user."""
+        target = target or ctx.author
         rows = await db.fetch(
-            "SELECT id, moderator_id, reason, created_at FROM user_warnings WHERE guild_id = ? AND user_id = ? ORDER BY id DESC",
-            ctx.guild.id, member.id
+            "SELECT id, moderator_id, reason, created_at FROM user_warnings WHERE guild_id = ? AND user_id = ? ORDER BY id DESC LIMIT 15",
+            ctx.guild.id, target.id
         )
-        if not rows:
-            return await ctx.reply(embed=ZenithEmbed.info("Clean Record", f"{member.mention} has no recorded warnings in this server."), mention_author=False)
 
-        desc = "\n".join(f"• **#{r['id']}** | Mod: <@{r['moderator_id']}> | Reason: `{r['reason']}`" for r in rows)
-        embed = ZenithEmbed(
-            title=f"Warnings for {member}",
-            description=desc,
-            color=Color.WARNING
-        )
+        if not rows:
+            return await ctx.reply(embed=ZenithEmbed.info("Clean Record", f"{target.mention} has no recorded warnings in this server."), mention_author=False)
+
+        desc = f"Displaying recent infractions for {target.mention}:\n\n"
+        for r in rows:
+            mod = ctx.guild.get_member(r["moderator_id"])
+            mod_tag = mod.mention if mod else f"`{r['moderator_id']}`"
+            desc += f"`#{r['id']}` - **Reason:** {r['reason']}\n> Moderator: {mod_tag}\n\n"
+
+        embed = ZenithEmbed.accent(f"Warning Registry ({len(rows)})", desc)
         await ctx.reply(embed=embed, mention_author=False)
 
     @commands.command(name="clearwarnings", aliases=["clearwarns"])
     @commands.has_permissions(administrator=True)
-    async def clearwarnings_command(self, ctx: commands.Context, member: discord.Member):
-        """Erases all warning records for a user."""
-        await db.execute("DELETE FROM user_warnings WHERE guild_id = ? AND user_id = ?", ctx.guild.id, member.id)
-        embed = ZenithEmbed.success("Record Cleared", f"Erased all warnings for {member.mention}.")
+    async def clearwarnings_command(self, ctx: commands.Context, target: discord.Member):
+        """Purges all stored warnings for a specified member."""
+        await db.execute("DELETE FROM user_warnings WHERE guild_id = ? AND user_id = ?", ctx.guild.id, target.id)
+        embed = ZenithEmbed.success("Warnings Expunged", f"Successfully cleared all warning records for {target.mention}.")
         await ctx.reply(embed=embed, mention_author=False)
 
     # ═══════════════════════════════════════════════════════════════
-    #  CHANNEL RESTRICTION TOOLS (LOCK, HIDE, SLOWMODE)
+    #  CHANNEL ACCESS & LOCKDOWN (LOCK, UNLOCK, HIDE, UNHIDE)
     # ═══════════════════════════════════════════════════════════════
 
     @commands.command(name="lock")
     @commands.has_permissions(manage_channels=True)
     @commands.bot_has_permissions(manage_channels=True)
-    async def lock_command(self, ctx: commands.Context, channel: Optional[discord.TextChannel] = None, *, reason: Optional[str] = "Channel Lockdown"):
-        """Locks a channel, preventing @everyone from sending messages."""
+    async def lock_command(self, ctx: commands.Context, channel: Optional[discord.TextChannel] = None, *, reason: Optional[str] = "Channel lockdown"):
+        """Denies send_messages permission for @everyone on the specified channel."""
         ch = channel or ctx.channel
         overwrite = ch.overwrites_for(ctx.guild.default_role)
         overwrite.send_messages = False
         await ch.set_permissions(ctx.guild.default_role, overwrite=overwrite, reason=f"Zenith Lock [{ctx.author}]: {reason}")
-        await ctx.reply(embed=ZenithEmbed.success("Channel Locked", f"Secured {ch.mention}. Members cannot send messages."), mention_author=False)
+        await ctx.reply(embed=ZenithEmbed.accent("Channel Locked", f"{ch.mention} has been locked for `@everyone`.\n**Reason:** {reason}"), mention_author=False)
 
     @commands.command(name="unlock")
     @commands.has_permissions(manage_channels=True)
     @commands.bot_has_permissions(manage_channels=True)
     async def unlock_command(self, ctx: commands.Context, channel: Optional[discord.TextChannel] = None):
-        """Unlocks a previously locked channel."""
+        """Restores send_messages permission for @everyone on the specified channel."""
         ch = channel or ctx.channel
         overwrite = ch.overwrites_for(ctx.guild.default_role)
         overwrite.send_messages = None
         await ch.set_permissions(ctx.guild.default_role, overwrite=overwrite, reason=f"Zenith Unlock [{ctx.author}]")
-        await ctx.reply(embed=ZenithEmbed.success("Channel Unlocked", f"Restored default permissions for {ch.mention}."), mention_author=False)
+        await ctx.reply(embed=ZenithEmbed.success("Channel Unlocked", f"{ch.mention} has been unlocked for `@everyone`."), mention_author=False)
+
+    @commands.command(name="lockall")
+    @commands.has_permissions(administrator=True)
+    @commands.bot_has_permissions(manage_channels=True)
+    async def lockall_command(self, ctx: commands.Context, *, reason: Optional[str] = "Server emergency lockdown"):
+        """Locks all text channels in the server for @everyone."""
+        status_msg = await ctx.reply(embed=ZenithEmbed.info("Locking Channels", "Applying lockdown across text channels..."), mention_author=False)
+        count = 0
+        for ch in ctx.guild.text_channels:
+            try:
+                overwrite = ch.overwrites_for(ctx.guild.default_role)
+                if overwrite.send_messages is not False:
+                    overwrite.send_messages = False
+                    await ch.set_permissions(ctx.guild.default_role, overwrite=overwrite, reason=f"Zenith Lockall [{ctx.author}]: {reason}")
+                    count += 1
+            except Exception:
+                pass
+        await status_msg.edit(embed=ZenithEmbed.success("Lockall Complete", f"Locked **{count}** text channels for `@everyone`.\n**Reason:** {reason}"))
+
+    @commands.command(name="unlockall")
+    @commands.has_permissions(administrator=True)
+    @commands.bot_has_permissions(manage_channels=True)
+    async def unlockall_command(self, ctx: commands.Context):
+        """Unlocks all text channels in the server for @everyone."""
+        status_msg = await ctx.reply(embed=ZenithEmbed.info("Unlocking Channels", "Restoring send message permissions across text channels..."), mention_author=False)
+        count = 0
+        for ch in ctx.guild.text_channels:
+            try:
+                overwrite = ch.overwrites_for(ctx.guild.default_role)
+                if overwrite.send_messages is False:
+                    overwrite.send_messages = None
+                    await ch.set_permissions(ctx.guild.default_role, overwrite=overwrite, reason=f"Zenith Unlockall [{ctx.author}]")
+                    count += 1
+            except Exception:
+                pass
+        await status_msg.edit(embed=ZenithEmbed.success("Unlockall Complete", f"Restored access across **{count}** text channels."))
 
     @commands.command(name="hide")
     @commands.has_permissions(manage_channels=True)
     @commands.bot_has_permissions(manage_channels=True)
     async def hide_command(self, ctx: commands.Context, channel: Optional[discord.TextChannel] = None):
-        """Hides a channel from regular members by disabling view_channel."""
+        """Hides the channel from @everyone view."""
         ch = channel or ctx.channel
         overwrite = ch.overwrites_for(ctx.guild.default_role)
         overwrite.view_channel = False
         await ch.set_permissions(ctx.guild.default_role, overwrite=overwrite, reason=f"Zenith Hide [{ctx.author}]")
-        await ctx.reply(embed=ZenithEmbed.success("Channel Hidden", f"Hidden {ch.mention} from @everyone."), mention_author=False)
+        await ctx.reply(embed=ZenithEmbed.accent("Channel Hidden", f"{ch.mention} is now hidden from `@everyone`."), mention_author=False)
 
     @commands.command(name="unhide")
     @commands.has_permissions(manage_channels=True)
     @commands.bot_has_permissions(manage_channels=True)
     async def unhide_command(self, ctx: commands.Context, channel: Optional[discord.TextChannel] = None):
-        """Makes a hidden channel visible to members again."""
+        """Restores channel visibility to @everyone."""
         ch = channel or ctx.channel
         overwrite = ch.overwrites_for(ctx.guild.default_role)
         overwrite.view_channel = None
         await ch.set_permissions(ctx.guild.default_role, overwrite=overwrite, reason=f"Zenith Unhide [{ctx.author}]")
-        await ctx.reply(embed=ZenithEmbed.success("Channel Visible", f"Restored visibility for {ch.mention}."), mention_author=False)
+        await ctx.reply(embed=ZenithEmbed.success("Channel Unhidden", f"{ch.mention} visibility has been restored for `@everyone`."), mention_author=False)
 
-    @commands.command(name="slowmode", aliases=["sm"])
+    @commands.command(name="hideall")
+    @commands.has_permissions(administrator=True)
+    @commands.bot_has_permissions(manage_channels=True)
+    async def hideall_command(self, ctx: commands.Context):
+        """Hides all text channels in the server from @everyone."""
+        status_msg = await ctx.reply(embed=ZenithEmbed.info("Hiding Channels", "Hiding channels from `@everyone`..."), mention_author=False)
+        count = 0
+        for ch in ctx.guild.text_channels:
+            try:
+                overwrite = ch.overwrites_for(ctx.guild.default_role)
+                if overwrite.view_channel is not False:
+                    overwrite.view_channel = False
+                    await ch.set_permissions(ctx.guild.default_role, overwrite=overwrite, reason=f"Zenith Hideall [{ctx.author}]")
+                    count += 1
+            except Exception:
+                pass
+        await status_msg.edit(embed=ZenithEmbed.success("Hideall Complete", f"Hidden **{count}** channels from `@everyone`."))
+
+    @commands.command(name="unhideall")
+    @commands.has_permissions(administrator=True)
+    @commands.bot_has_permissions(manage_channels=True)
+    async def unhideall_command(self, ctx: commands.Context):
+        """Restores visibility on all text channels for @everyone."""
+        status_msg = await ctx.reply(embed=ZenithEmbed.info("Unhiding Channels", "Restoring channel visibility..."), mention_author=False)
+        count = 0
+        for ch in ctx.guild.text_channels:
+            try:
+                overwrite = ch.overwrites_for(ctx.guild.default_role)
+                if overwrite.view_channel is False:
+                    overwrite.view_channel = None
+                    await ch.set_permissions(ctx.guild.default_role, overwrite=overwrite, reason=f"Zenith Unhideall [{ctx.author}]")
+                    count += 1
+            except Exception:
+                pass
+        await status_msg.edit(embed=ZenithEmbed.success("Unhideall Complete", f"Restored visibility across **{count}** channels."))
+
+    @commands.command(name="slowmode", aliases=["sm", "slow"])
     @commands.has_permissions(manage_channels=True)
     @commands.bot_has_permissions(manage_channels=True)
     async def slowmode_command(self, ctx: commands.Context, seconds: int):
-        """Sets message rate delay in seconds for the current channel (0 to disable)."""
+        """Sets slowmode delay on current channel (0 to disable, max 21600)."""
         if seconds < 0 or seconds > 21600:
-            return await ctx.reply(embed=ZenithEmbed.error("Invalid Limit", "Slowmode must be between 0 seconds and 6 hours (21600s)."), mention_author=False)
+            return await ctx.reply(embed=ZenithEmbed.error("Out of Bounds", "Slowmode must be between 0 and 21600 seconds (6 hours)."), mention_author=False)
 
-        await ctx.channel.edit(slowmode_delay=seconds)
+        await ctx.channel.edit(slowmode_delay=seconds, reason=f"Zenith Slowmode [{ctx.author}]")
         if seconds == 0:
-            embed = ZenithEmbed.success("Slowmode Disabled", "Rate limit removed from this channel.")
-        else:
-            embed = ZenithEmbed.success("Slowmode Configured", f"Set channel delay to **{seconds}s** per message.")
-        await ctx.reply(embed=embed, mention_author=False)
+            return await ctx.reply(embed=ZenithEmbed.success("Slowmode Disabled", "Slowmode restrictions disabled on this channel."), mention_author=False)
+        await ctx.reply(embed=ZenithEmbed.accent("Slowmode Applied", f"Rate limit per user set to **{seconds} seconds**."), mention_author=False)
+
+    @commands.command(name="unslowmode", aliases=["unslow"])
+    @commands.has_permissions(manage_channels=True)
+    @commands.bot_has_permissions(manage_channels=True)
+    async def unslowmode_command(self, ctx: commands.Context):
+        """Disables slowmode on the current channel."""
+        await ctx.channel.edit(slowmode_delay=0, reason=f"Zenith Unslowmode [{ctx.author}]")
+        await ctx.reply(embed=ZenithEmbed.success("Slowmode Cleared", "Slowmode has been removed from this channel."), mention_author=False)
 
     # ═══════════════════════════════════════════════════════════════
-    #  ADVANCED PURGE SUBSYSTEM
+    #  CHANNEL ADMINISTRATION (CREATE, DELETE, RENAME, CLONE)
+    # ═══════════════════════════════════════════════════════════════
+
+    @commands.group(name="channel", aliases=["ch"], invoke_without_command=True)
+    @commands.guild_only()
+    @commands.has_permissions(manage_channels=True)
+    @commands.bot_has_permissions(manage_channels=True)
+    async def channel_group(self, ctx: commands.Context):
+        """Manage server channels."""
+        embed = discord.Embed(
+            title="[CHANNEL COMMANDS]",
+            description=(
+                f"`{ctx.prefix}channel create <name> [text/voice/category]` - Create a channel\n"
+                f"`{ctx.prefix}channel delete <channel>` - Delete a channel\n"
+                f"`{ctx.prefix}channel rename <channel> <new_name>` - Rename a channel\n"
+                f"`{ctx.prefix}channel clone <channel>` - Clone an existing channel"
+            ),
+            color=0x0F0F13
+        )
+        embed.set_footer(text="Zenith Moderation | Developed by Shree")
+        await ctx.send(embed=embed)
+
+    @channel_group.command(name="create")
+    @commands.has_permissions(manage_channels=True)
+    @commands.bot_has_permissions(manage_channels=True)
+    async def ch_create(self, ctx: commands.Context, name: str, ch_type: str = "text"):
+        """Create a new channel."""
+        ch_type = ch_type.lower()
+        if ch_type in ["text", "t"]:
+            ch = await ctx.guild.create_text_channel(name=name, reason=f"[{ctx.author}]")
+        elif ch_type in ["voice", "vc", "v"]:
+            ch = await ctx.guild.create_voice_channel(name=name, reason=f"[{ctx.author}]")
+        elif ch_type in ["category", "cat", "c"]:
+            ch = await ctx.guild.create_category(name=name, reason=f"[{ctx.author}]")
+        else:
+            return await ctx.reply(embed=ZenithEmbed.error("Invalid Type", "Valid types: `text`, `voice`, `category`."), mention_author=False)
+
+        await ctx.reply(embed=ZenithEmbed.success("Channel Created", f"Created {ch.mention} (`{ch.id}`)."), mention_author=False)
+
+    @channel_group.command(name="delete")
+    @commands.has_permissions(manage_channels=True)
+    @commands.bot_has_permissions(manage_channels=True)
+    async def ch_delete(self, ctx: commands.Context, channel: discord.abc.GuildChannel):
+        """Delete an existing channel."""
+        ch_name = channel.name
+        await channel.delete(reason=f"[{ctx.author}]")
+        await ctx.reply(embed=ZenithEmbed.success("Channel Deleted", f"Deleted channel `{ch_name}`."), mention_author=False)
+
+    @channel_group.command(name="rename")
+    @commands.has_permissions(manage_channels=True)
+    @commands.bot_has_permissions(manage_channels=True)
+    async def ch_rename(self, ctx: commands.Context, channel: discord.abc.GuildChannel, *, new_name: str):
+        """Rename an existing channel."""
+        old = channel.name
+        await channel.edit(name=new_name, reason=f"[{ctx.author}]")
+        await ctx.reply(embed=ZenithEmbed.success("Channel Renamed", f"Renamed `{old}` to `{new_name}`."), mention_author=False)
+
+    @channel_group.command(name="clone")
+    @commands.has_permissions(manage_channels=True)
+    @commands.bot_has_permissions(manage_channels=True)
+    async def ch_clone(self, ctx: commands.Context, channel: discord.abc.GuildChannel):
+        """Clone an existing channel."""
+        new_ch = await channel.clone(reason=f"[{ctx.author}]")
+        await ctx.reply(embed=ZenithEmbed.success("Channel Cloned", f"Cloned `{channel.name}` into {new_ch.mention}."), mention_author=False)
+
+    # ═══════════════════════════════════════════════════════════════
+    #  EMOJI STEALER
+    # ═══════════════════════════════════════════════════════════════
+
+    @commands.command(name="steal", aliases=["stealemoji"])
+    @commands.guild_only()
+    @commands.has_permissions(manage_expressions=True)
+    @commands.bot_has_permissions(manage_expressions=True)
+    async def steal_emoji(self, ctx: commands.Context, emoji: str, *, name: Optional[str] = None):
+        """Steal a custom emoji or image url and add it to the server."""
+        custom_match = re.search(r"<(a)?:([a-zA-Z0-9_]+):([0-9]+)>", emoji)
+        if custom_match:
+            is_animated = bool(custom_match.group(1))
+            ext = "gif" if is_animated else "png"
+            emoji_id = custom_match.group(3)
+            url = f"https://cdn.discordapp.com/emojis/{emoji_id}.{ext}"
+            emoji_name = name or custom_match.group(2)
+        elif emoji.startswith("http://") or emoji.startswith("https://"):
+            url = emoji
+            emoji_name = name or "custom_emoji"
+        else:
+            return await ctx.reply(embed=ZenithEmbed.error("Invalid Emoji", "Please provide a valid custom emoji or direct image URL."), mention_author=False)
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    if resp.status != 200:
+                        return await ctx.reply(embed=ZenithEmbed.error("Download Failed", "Could not fetch emoji asset."), mention_author=False)
+                    image_bytes = await resp.read()
+
+            created = await ctx.guild.create_custom_emoji(name=emoji_name, image=image_bytes, reason=f"Zenith Steal [{ctx.author}]")
+            await ctx.reply(embed=ZenithEmbed.success("Emoji Added", f"Successfully added emoji {created} (`:{created.name}:`)."), mention_author=False)
+        except discord.HTTPException as e:
+            await ctx.reply(embed=ZenithEmbed.error("Upload Error", f"Failed to upload emoji: {e}"), mention_author=False)
+
+    # ═══════════════════════════════════════════════════════════════
+    #  PURGE SUITE
     # ═══════════════════════════════════════════════════════════════
 
     @commands.group(name="purge", aliases=["clear", "c"], invoke_without_command=True)
     @commands.has_permissions(manage_messages=True)
     @commands.bot_has_permissions(manage_messages=True)
-    async def purge_group(self, ctx: commands.Context, amount: int):
-        """Deletes a specified number of recent messages in the channel."""
-        if amount <= 0 or amount > config.MAX_PURGE_LIMIT:
-            return await ctx.reply(embed=ZenithEmbed.error("Limit Exceeded", f"Amount must be between 1 and {config.MAX_PURGE_LIMIT}."), mention_author=False)
+    async def purge_group(self, ctx: commands.Context, amount: int = 25):
+        """Bulk cleans up recent messages in the active channel (up to 1000)."""
+        if amount < 1 or amount > 1000:
+            return await ctx.reply(embed=ZenithEmbed.error("Invalid Range", "Provide message count between 1 and 1000."), mention_author=False)
 
         deleted = await ctx.channel.purge(limit=amount + 1)
-        msg = await ctx.send(embed=ZenithEmbed.success("Messages Purged", f"Deleted **{len(deleted) - 1}** messages."))
+        msg = await ctx.send(embed=ZenithEmbed.success("Purge Complete", f"Purged **{len(deleted) - 1}** messages."))
         await asyncio.sleep(4)
         try:
             await msg.delete()
@@ -279,9 +539,9 @@ class Moderation(commands.Cog):
     @purge_group.command(name="bots")
     @commands.has_permissions(manage_messages=True)
     async def purge_bots(self, ctx: commands.Context, amount: int = 50):
-        """Cleans up messages sent by bots."""
+        """Purges messages authored strictly by automated bots."""
         deleted = await ctx.channel.purge(limit=amount + 1, check=lambda m: m.author.bot)
-        msg = await ctx.send(embed=ZenithEmbed.success("Bot Messages Purged", f"Deleted **{len(deleted)}** bot messages."))
+        msg = await ctx.send(embed=ZenithEmbed.success("Bot Purge Complete", f"Deleted **{len(deleted)}** bot messages."))
         await asyncio.sleep(4)
         try:
             await msg.delete()
@@ -313,62 +573,29 @@ class Moderation(commands.Cog):
         except Exception:
             pass
 
-    # ═══════════════════════════════════════════════════════════════
-    #  ROLE MANAGEMENT TOOLS
-    # ═══════════════════════════════════════════════════════════════
+    @purge_group.command(name="match")
+    @commands.has_permissions(manage_messages=True)
+    async def purge_match(self, ctx: commands.Context, text: str, amount: int = 50):
+        """Deletes messages containing a specific text string."""
+        deleted = await ctx.channel.purge(limit=amount + 1, check=lambda m: text.lower() in m.content.lower())
+        msg = await ctx.send(embed=ZenithEmbed.success("Match Purged", f"Removed **{len(deleted)}** messages matching `{text}`."))
+        await asyncio.sleep(4)
+        try:
+            await msg.delete()
+        except Exception:
+            pass
 
-    @commands.group(name="role", invoke_without_command=True)
-    @commands.has_permissions(manage_roles=True)
-    @commands.bot_has_permissions(manage_roles=True)
-    async def role_group(self, ctx: commands.Context, target: discord.Member, role: discord.Role):
-        """Toggles a role on a user (assigns if missing, strips if present)."""
-        if not self._check_hierarchy(ctx.author, target):
-            return await ctx.reply(embed=ZenithEmbed.error("Hierarchy Error", "Target user has equal or higher roles than you."), mention_author=False)
-        if role >= ctx.guild.me.top_role:
-            return await ctx.reply(embed=ZenithEmbed.error("Bot Hierarchy Error", "This role is higher than or equal to my highest role."), mention_author=False)
-
-        if role in target.roles:
-            await target.remove_roles(role, reason=f"Zenith Role Toggle [{ctx.author}]")
-            await ctx.reply(embed=ZenithEmbed.success("Role Removed", f"Removed {role.mention} from {target.mention}."), mention_author=False)
-        else:
-            await target.add_roles(role, reason=f"Zenith Role Toggle [{ctx.author}]")
-            await ctx.reply(embed=ZenithEmbed.success("Role Granted", f"Assigned {role.mention} to {target.mention}."), mention_author=False)
-
-    @role_group.command(name="humans")
-    @commands.has_permissions(administrator=True)
-    async def role_humans(self, ctx: commands.Context, role: discord.Role):
-        """Assigns a role in bulk to all human members."""
-        if role >= ctx.guild.me.top_role:
-            return await ctx.reply(embed=ZenithEmbed.error("Hierarchy Error", "I cannot assign a role above my highest role."), mention_author=False)
-
-        status_msg = await ctx.reply(embed=ZenithEmbed.info("Processing", f"Assigning {role.mention} to all human members..."), mention_author=False)
-        count = 0
-        for member in ctx.guild.members:
-            if not member.bot and role not in member.roles:
-                try:
-                    await member.add_roles(role, reason=f"Zenith Mass Role Humans [{ctx.author}]")
-                    count += 1
-                except Exception:
-                    pass
-        await status_msg.edit(embed=ZenithEmbed.success("Bulk Role Complete", f"Granted {role.mention} to **{count}** human members."))
-
-    @role_group.command(name="bots")
-    @commands.has_permissions(administrator=True)
-    async def role_bots(self, ctx: commands.Context, role: discord.Role):
-        """Assigns a role in bulk to all bot accounts."""
-        if role >= ctx.guild.me.top_role:
-            return await ctx.reply(embed=ZenithEmbed.error("Hierarchy Error", "I cannot assign a role above my highest role."), mention_author=False)
-
-        status_msg = await ctx.reply(embed=ZenithEmbed.info("Processing", f"Assigning {role.mention} to all bot accounts..."), mention_author=False)
-        count = 0
-        for member in ctx.guild.members:
-            if member.bot and role not in member.roles:
-                try:
-                    await member.add_roles(role, reason=f"Zenith Mass Role Bots [{ctx.author}]")
-                    count += 1
-                except Exception:
-                    pass
-        await status_msg.edit(embed=ZenithEmbed.success("Bulk Role Complete", f"Granted {role.mention} to **{count}** bot accounts."))
+    @purge_group.command(name="attachments", aliases=["files"])
+    @commands.has_permissions(manage_messages=True)
+    async def purge_attachments(self, ctx: commands.Context, amount: int = 50):
+        """Deletes messages containing uploaded file attachments."""
+        deleted = await ctx.channel.purge(limit=amount + 1, check=lambda m: bool(m.attachments))
+        msg = await ctx.send(embed=ZenithEmbed.success("Attachments Purged", f"Removed **{len(deleted)}** attachment messages."))
+        await asyncio.sleep(4)
+        try:
+            await msg.delete()
+        except Exception:
+            pass
 
 
 async def setup(bot: commands.Bot):

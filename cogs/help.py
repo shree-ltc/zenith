@@ -1,14 +1,98 @@
 """
 Interactive help command displaying categories in a select menu.
+Developed by Shree (Discord ID: 1465912900710305822).
 """
 
-from typing import Optional
+from typing import Optional, List, Dict
 import discord
 from discord.ext import commands
 from discord import ui
 
 from ui.embeds import ZenithEmbed
 from ui.colors import Color
+
+CATEGORY_MAPPING = {
+    "security": {
+        "label": "Security & Antinuke",
+        "description": "Antinuke, whitelist, snapshots, and extra owners",
+        "cogs": ["Antinuke", "ExtraOwner"]
+    },
+    "mainrole": {
+        "label": "Mainrole Protection",
+        "description": "Lock down @everyone and verified member roles",
+        "cogs": ["Mainrole"]
+    },
+    "antibetray": {
+        "label": "Anti-Betray",
+        "description": "Autonomous rogue staff velocity neutralization",
+        "cogs": ["AntiBetray"]
+    },
+    "fakepermission": {
+        "label": "Fake Permissions",
+        "description": "Virtual moderator permissions and daily quotas",
+        "cogs": ["FakePermission"]
+    },
+    "roles": {
+        "label": "Role Management",
+        "description": "Role editing, toggling, and mass role operations",
+        "cogs": ["Role"]
+    },
+    "moderation": {
+        "label": "Moderation",
+        "description": "Bans, kicks, timeouts, warnings, locks, and purges",
+        "cogs": ["Moderation"]
+    },
+    "automod": {
+        "label": "Automod",
+        "description": "Anti-spam, link filters, invite blocks, and caps",
+        "cogs": ["Automod"]
+    },
+    "music": {
+        "label": "Music",
+        "description": "High-fidelity audio streaming, queue, and autoplay",
+        "cogs": ["Music"]
+    },
+    "tickets": {
+        "label": "Tickets",
+        "description": "Support ticket panels and transcript logs",
+        "cogs": ["Tickets"]
+    },
+    "server": {
+        "label": "Server Tools",
+        "description": "Channel locks, slowmode, and server configs",
+        "cogs": ["Server"]
+    },
+    "voice": {
+        "label": "Voice Channels",
+        "description": "Dynamic join-to-create temporary voice lounges",
+        "cogs": ["Voice"]
+    },
+    "economy": {
+        "label": "Economy",
+        "description": "Currency, banking, jobs, shifts, and leaderboard",
+        "cogs": ["Economy"]
+    },
+    "utility": {
+        "label": "Utility",
+        "description": "Server, member, avatar, and system lookups",
+        "cogs": ["Utility"]
+    },
+    "welcome": {
+        "label": "Welcome",
+        "description": "Member greetings and join autoroles",
+        "cogs": ["Welcome"]
+    },
+    "giveaways": {
+        "label": "Giveaways",
+        "description": "Community prize drawings and timed giveaways",
+        "cogs": ["Giveaways"]
+    },
+    "fun": {
+        "label": "Fun & Games",
+        "description": "Mini-games, coinflips, and trivia",
+        "cogs": ["Fun"]
+    },
+}
 
 
 class HelpSelect(ui.Select):
@@ -19,70 +103,19 @@ class HelpSelect(ui.Select):
         options = [
             discord.SelectOption(
                 label="Home",
-                description="Overview and quick navigation",
+                description="Overview and system summary",
                 value="home"
-            ),
-            discord.SelectOption(
-                label="Security",
-                description="Antinuke, whitelist, and raid prevention",
-                value="Antinuke"
-            ),
-            discord.SelectOption(
-                label="Automod",
-                description="Spam, links, invites, and caps filtering",
-                value="Automod"
-            ),
-            discord.SelectOption(
-                label="Moderation",
-                description="Bans, timeouts, kicks, warnings, and purges",
-                value="Moderation"
-            ),
-            discord.SelectOption(
-                label="Tickets",
-                description="Support ticket panels and transcripts",
-                value="Tickets"
-            ),
-            discord.SelectOption(
-                label="Server Management",
-                description="Nuke, lockdown, dehoist, and role inspection",
-                value="Server"
-            ),
-            discord.SelectOption(
-                label="Voice",
-                description="Join-to-create temporary voice channels",
-                value="Voice"
-            ),
-            discord.SelectOption(
-                label="Economy",
-                description="Currency, banking, shifts, and leaderboard",
-                value="Economy"
-            ),
-            discord.SelectOption(
-                label="Utility",
-                description="Server, member, avatar, and system lookups",
-                value="Utility"
-            ),
-            discord.SelectOption(
-                label="Welcome",
-                description="Member greetings and join autoroles",
-                value="Welcome"
-            ),
-            discord.SelectOption(
-                label="Giveaways",
-                description="Community prize drawings",
-                value="Giveaways"
-            ),
-            discord.SelectOption(
-                label="Music",
-                description="Audio streaming, queue, seek, and autoplay",
-                value="Music"
-            ),
-            discord.SelectOption(
-                label="Fun",
-                description="Mini-games, coinflips, and trivia",
-                value="Fun"
-            ),
+            )
         ]
+
+        for key, data in CATEGORY_MAPPING.items():
+            options.append(
+                discord.SelectOption(
+                    label=data["label"],
+                    description=data["description"][:100],
+                    value=key
+                )
+            )
 
         super().__init__(
             placeholder="Select a category to view commands...",
@@ -94,7 +127,7 @@ class HelpSelect(ui.Select):
     async def callback(self, interaction: discord.Interaction):
         if interaction.user.id != self.ctx.author.id:
             return await interaction.response.send_message(
-                embed=ZenithEmbed.error("Access Denied", "Only the requester can use this menu."),
+                embed=ZenithEmbed.error("Access Denied", "Only the command author can interact with this selector."),
                 ephemeral=True
             )
 
@@ -104,29 +137,39 @@ class HelpSelect(ui.Select):
             embed = self.help_cog.get_home_embed(self.ctx)
             return await interaction.response.edit_message(embed=embed, view=self.view)
 
-        target_cog = self.help_cog.bot.get_cog(selected)
-        if not target_cog:
+        cat_info = CATEGORY_MAPPING.get(selected)
+        if not cat_info:
             embed = ZenithEmbed.error("Category Not Found", "No commands registered in this category.")
             return await interaction.response.edit_message(embed=embed, view=self.view)
 
-        cmds = [c for c in target_cog.get_commands() if not c.hidden]
+        all_cmds: List[commands.Command] = []
+        for cog_name in cat_info["cogs"]:
+            target_cog = self.help_cog.bot.get_cog(cog_name)
+            if target_cog:
+                all_cmds.extend([c for c in target_cog.get_commands() if not c.hidden])
 
         embed = ZenithEmbed(
-            title=f"{selected} Commands",
-            description=f"Commands registered under **{selected}**.\n"
-                        f"Use `{self.ctx.prefix}help <command>` for syntax and flags.\n\n",
-            color=Color.PRIMARY
+            title=f"[{cat_info['label'].upper()}]",
+            description=(
+                f"{cat_info['description']}.\n"
+                f"Prefix: `{self.ctx.prefix}` | Run `{self.ctx.prefix}help <command>` for detailed syntax.\n"
+            ),
+            color=0x0F0F13
         )
 
-        for cmd in cmds:
-            name = f"{self.ctx.prefix}{cmd.qualified_name}"
-            desc = cmd.help or cmd.brief or "No description provided."
-            if isinstance(cmd, commands.Group) and cmd.commands:
-                sub_names = ", ".join(f"`{sub.name}`" for sub in cmd.commands if not sub.hidden)
-                desc = f"{desc}\nSubcommands: {sub_names}"
+        if not all_cmds:
+            embed.description += "\n*No public commands available in this module.*"
+        else:
+            for cmd in all_cmds:
+                name = f"{self.ctx.prefix}{cmd.qualified_name}"
+                desc = cmd.help or cmd.brief or "No description provided."
+                if isinstance(cmd, commands.Group) and cmd.commands:
+                    sub_names = ", ".join(f"`{sub.name}`" for sub in cmd.commands if not sub.hidden)
+                    desc = f"{desc}\nSubcommands: {sub_names}"
 
-            embed.add_field(name=f"`{name}`", value=desc, inline=False)
+                embed.add_field(name=f"`{name}`", value=desc, inline=False)
 
+        embed.set_footer(text="Zenith Suite | Developed by Shree")
         await interaction.response.edit_message(embed=embed, view=self.view)
 
 
@@ -152,30 +195,31 @@ class Help(commands.Cog):
             title="Zenith — Command Directory",
             description=(
                 f"Prefix: `{ctx.prefix}`\n"
-                f"Total Commands: `{total_commands}+`\n"
-                "Select a category from the dropdown below to explore modules.\n"
-                f"Run `{ctx.prefix}help <command>` for detailed arguments."
+                f"Registered Commands: `{total_commands}+`\n"
+                "Select a category from the dropdown menu to inspect modules.\n"
+                f"Run `{ctx.prefix}help <command>` for complete arguments and flags."
             ),
-            color=Color.PRIMARY
+            color=0x0F0F13
         )
 
         embed.add_field(
-            name="Protection & Governance",
-            value="`Antinuke`, `Automod`, `Moderation`, `Server Logs`",
+            name="Security & Governance",
+            value="`Antinuke`, `Mainrole`, `AntiBetray`, `FakePermission`, `Automod`",
             inline=False
         )
         embed.add_field(
-            name="Automation & Tools",
-            value="`Tickets`, `TempVC`, `Welcome`, `Autorole`, `Server`, `Giveaways`",
+            name="Administration & Roles",
+            value="`Moderation`, `Roles`, `Server`, `Tickets`, `Server Logs`",
             inline=False
         )
         embed.add_field(
-            name="Media & Engagement",
-            value="`Music`, `Economy`, `Utility`, `Fun`, `AFK`",
+            name="Engagement & Media",
+            value="`Music`, `Economy`, `Utility`, `Voice`, `Giveaways`, `Welcome`, `Fun`, `AFK`",
             inline=False
         )
 
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
+        embed.set_footer(text="Zenith Autonomous Defense | Developed by Shree")
         return embed
 
     @commands.command(name="help", aliases=["commands", "cmds", "h"])
@@ -197,7 +241,7 @@ class Help(commands.Cog):
         embed = ZenithEmbed(
             title=f"Command: {ctx.prefix}{cmd.qualified_name}",
             description=cmd.help or "No detailed description provided.",
-            color=Color.PRIMARY
+            color=0x0F0F13
         )
 
         usage = f"`{ctx.prefix}{cmd.qualified_name} {cmd.signature}`".strip()
@@ -224,8 +268,11 @@ class Help(commands.Cog):
             )
             embed.add_field(name="Subcommands", value=sub_list, inline=False)
 
+        embed.set_footer(text="Zenith Suite | Developed by Shree")
         await ctx.reply(embed=embed, mention_author=False)
 
 
 async def setup(bot: commands.Bot):
+    if bot.get_command("help"):
+        bot.remove_command("help")
     await bot.add_cog(Help(bot))
