@@ -1,0 +1,26 @@
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Environment files & Secrets
+.env
+.venv/
+env/
+venv/
+ENV/
+
+# Database files & logs
+data/
+*.db
+*.sqlite3
+logs/
+*.log
+
+# IDE & Editor artifacts
+.vscode/
+.idea/
+*.swp
+*.swo
