@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith • Admin Control Plane</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/dashboard.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .chip-container { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+    .chip { background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.25rem 0.6rem; border-radius: 4px; font-family: var(--font-mono); font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.4rem; }
+    .chip-remove { cursor: pointer; color: var(--accent-red); font-weight: bold; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+    @media (max-width: 900px) {
+      .dashboard-container { flex-direction: column; }
+      .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border-color); }
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="navbar">
+    <div class="brand">
+      <a href="/" style="display: flex; align-items: center; gap: 0.75rem;">
+        <img src="/static/logo.svg" alt="Zenith" class="brand-logo">
+        <span class="brand-name">Zenith</span>
+      </a>
+      <span class="brand-badge">CONTROL PLANE</span>
+    </div>
+    <div class="nav-links">
+      <div class="status-pill">
+        <span class="status-indicator"></span>
+        <span id="gatewayStatus">GATEWAY ONLINE • <span id="pingCounter">--</span>ms</span>
+      </div>
+      <a href="/" class="btn btn-secondary">Website Home</a>
+      <a href="https://github.com/shree-ltc/zenith" target="_blank" class="btn btn-secondary">GitHub</a>
+    </div>
+  </header>
+
+  <!-- Dashboard Container -->
+  <div class="dashboard-container">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="guild-picker-wrapper">
+        <label class="field-label" for="guildSelect">Active Server</label>
+        <select id="guildSelect" class="select-input">
+          <option value="" disabled selected>Loading connected servers...</option>
+        </select>
+      </div>
+
+      <ul class="nav-menu">
+        <li class="nav-item active" onclick="switchTab('tab-overview', this)">
+          <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);">01</span>
+          <span>Overview &amp; Health</span>
+        </li>
+        <li class="nav-item" onclick="switchTab('tab-antinuke', this)">
+          <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);">02</span>
+          <span>Antinuke &amp; Defense</span>
+        </li>
+        <li class="nav-item" onclick="switchTab('tab-automod', this)">
+          <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);">03</span>
+          <span>Automod Matrix</span>
+        </li>
+        <li class="nav-item" onclick="switchTab('tab-welcome', this)">
+          <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);">04</span>
+          <span>Welcome &amp; Autoroles</span>
+        </li>
+        <li class="nav-item" onclick="switchTab('tab-mainrole', this)">
+          <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);">05</span>
+          <span>Mainrole Protection</span>
+        </li>
+        <li class="nav-item" onclick="switchTab('tab-maintenance', this)">
+          <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);">06</span>
+          <span>Server Maintenance</span>
+        </li>
+        <li class="nav-item" onclick="switchTab('tab-announcements', this)">
+          <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);">07</span>
+          <span>Announcement Dispatch</span>
+        </li>
+      </ul>
+
+      <div style="margin-top: auto; padding: 1rem; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px;">
+        <div style="font-size: 0.75rem; font-family: var(--font-mono); color: var(--text-muted);">SECURITY STATUS</div>
+        <div style="font-size: 0.85rem; font-weight: 600; color: var(--accent-green); margin-top: 0.2rem;">[ACTIVE] Sharded Defense</div>
+        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.4rem;">Author: Shree (shree-ltc)</div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+
+      <!-- ================= TAB 1: OVERVIEW ================= -->
+      <div id="tab-overview" class="tab-content active">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title" id="overviewGuildName">Server Overview</h2>
+            <p class="panel-desc" id="overviewGuildId">Select a guild from the sidebar to inspect telemetry.</p>
+          </div>
+          <button class="btn btn-secondary" onclick="reloadGuildData()">Refresh Telemetry</button>
+        </div>
+
+        <div class="stats-strip" style="max-width: 100%; margin: 0 0 2rem 0; padding: 0;">
+          <div class="stat-card">
+            <div class="stat-value" id="ovMemberCount">--</div>
+            <div class="stat-label">Total Members</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="ovChannelCount">--</div>
+            <div class="stat-label">Text &amp; Voice Channels</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="ovRoleCount">--</div>
+            <div class="stat-label">Configured Roles</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="ovAntinukeState">--</div>
+            <div class="stat-label">Antinuke Defense</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Server Diagnostics</h3>
+          <p class="card-desc">Real-time gateway connectivity status and server infrastructure.</p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+            <div>
+              <div class="field-label">Server Owner ID</div>
+              <div id="ovOwnerId" style="font-family: var(--font-mono); font-size: 0.9rem; margin-top: 0.2rem;">--</div>
+            </div>
+            <div>
+              <div class="field-label">Bot Permission State</div>
+              <div style="font-family: var(--font-mono); font-size: 0.9rem; color: var(--accent-green); margin-top: 0.2rem;">[VERIFIED] Administrator</div>
+            </div>
+            <div>
+              <div class="field-label">Database Persistence</div>
+              <div style="font-family: var(--font-mono); font-size: 0.9rem; color: var(--text-primary); margin-top: 0.2rem;">Dual Engine (PostgreSQL / SQLite)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= TAB 2: ANTINUKE ================= -->
+      <div id="tab-antinuke" class="tab-content">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">Antinuke &amp; Autonomous Raid Defense</h2>
+            <p class="panel-desc">Real-time audit log interception that strips rogue permissions and neutralizes attacks.</p>
+          </div>
+          <button class="btn btn-primary" onclick="saveAntinukeSettings()">Save Antinuke Settings</button>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Master Defense Engine</h3>
+          <p class="card-desc">Enable or disable all autonomous raid mitigations across this guild.</p>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <h4>Antinuke Master Shield</h4>
+              <p>Monitors gateway audit logs in real-time to block unauthorized destructive actions.</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="anMasterEnabled" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Granular Protection Modules</h3>
+          <p class="card-desc">Toggle specific mitigation vectors according to server requirements.</p>
+
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <h4>Anti-Ban Protection</h4>
+              <p>Reverts mass unauthorized member bans and sanctions the offending moderator.</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="anAntiBan" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <h4>Anti-Kick Protection</h4>
+              <p>Interprets unauthorized kicks and blocks mass removals.</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="anAntiKick" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <h4>Anti-Bot Integration</h4>
+              <p>Instantly kicks unauthorized unverified bots added without server owner authorization.</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="anAntiBot" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <h4>Anti-Channel Tampering</h4>
+              <p>Intercepts channel deletion and unauthorized creations, restoring channels from snapshots.</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="anAntiChannel" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <h4>Anti-Role Tampering &amp; Deletion</h4>
+              <p>Prevents rogue deletion of existing roles and strips unauthorized dangerous perms.</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="anAntiRole" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <h4>Anti-Webhook Creation</h4>
+              <p>Destroys unauthorized webhooks generated to spam or raid channels.</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="anAntiWebhook" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <h4>Anti-Prune Mitigation</h4>
+              <p>Neutralizes attempts to prune inactive members from the guild.</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="anAntiPrune" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Punishment Policy &amp; Emergency Actions</h3>
+          <p class="card-desc">Configure automated response to threats or initiate emergency lockdown.</p>
+          <div class="grid-2" style="align-items: center;">
+            <div>
+              <label class="field-label" for="anPunishmentSelect">Automated Threat Sanction</label>
+              <select id="anPunishmentSelect" class="select-input" style="margin-top: 0.35rem;">
+                <option value="ban">Immediate Ban (Recommended)</option>
+                <option value="kick">Kick from Server</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label">Emergency Protocol</label>
+              <button class="btn btn-danger" style="width: 100%; margin-top: 0.35rem;" onclick="triggerEmergencyPanic()">[EMERGENCY] Execute Panic Lockdown</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= TAB 3: AUTOMOD ================= -->
+      <div id="tab-automod" class="tab-content">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">Automod Filter Matrix</h2>
+            <p class="panel-desc">Fast regex scanners and rate-limiters filtering spam, advertising, and explicit terms.</p>
+          </div>
+          <button class="btn btn-primary" onclick="saveAutomodSettings()">Save Automod Matrix</button>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Message Scanners</h3>
+          <p class="card-desc">Active real-time message heuristics and content validation.</p>
+
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <h4>Anti-Spam Burst Limiter</h4>
+              <p>Blocks members from posting rapid bursts (e.g. 5 messages in 3 seconds).</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="amAntiSpam" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <h4>Anti-Discord Invites</h4>
+              <p>Deletes unauthorized discord.gg / discord.com/invite links automatically.</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="amAntiInvites" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <h4>Anti-External Links</h4>
+              <p>Deletes unauthorized HTTP/HTTPS URL promotions from non-whitelisted members.</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="amAntiLinks">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <h4>Anti-Excessive Capitalization</h4>
+              <p>Filters messages with over 70% uppercase characters.</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="amAntiCaps" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <h4>Mass Mention Suppressor</h4>
+              <p>Deletes messages pinging more than 4 distinct users in a single message.</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="amMassMention" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Forbidden Words Registry</h3>
+          <p class="card-desc">Messages containing these terms will be stripped instantly upon arrival.</p>
+          <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+            <input type="text" id="newWordInput" class="text-input" placeholder="Enter term or slur to block...">
+            <button class="btn btn-secondary" onclick="addForbiddenWord()">+ Add Term</button>
+          </div>
+          <div class="chip-container" id="wordsContainer">
+            <!-- Dynamically populated chips -->
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= TAB 4: WELCOME & AUTOROLE ================= -->
+      <div id="tab-welcome" class="tab-content">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">Welcome &amp; Autorole Onboarding</h2>
+            <p class="panel-desc">Configure greetings, arrival dispatch channels, and automated join role allocation.</p>
+          </div>
+          <button class="btn btn-primary" onclick="saveWelcomeSettings()">Save Onboarding</button>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Welcome Channel &amp; Message</h3>
+          <p class="card-desc">Supports dynamic variables: <code>{user}</code>, <code>{server}</code>, <code>{count}</code>.</p>
+          <div style="margin-bottom: 1.25rem;">
+            <label class="field-label" for="welcomeChannelSelect">Broadcast Channel</label>
+            <select id="welcomeChannelSelect" class="select-input" style="margin-top: 0.35rem;">
+              <option value="">None / Disabled</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="field-label" for="welcomeMessageText">Custom Welcome Template</label>
+            <textarea id="welcomeMessageText" class="textarea-input" rows="3" style="margin-top: 0.35rem;" placeholder="Welcome {user} to {server}! You are member #{count}."></textarea>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Autoroles (Auto-Assignment on Join)</h3>
+          <p class="card-desc">Roles with Administrator or dangerous permissions are strictly blocked by security policy.</p>
+          <div class="grid-2">
+            <div>
+              <label class="field-label" for="arHumanRoleSelect">Human Member Role</label>
+              <select id="arHumanRoleSelect" class="select-input" style="margin-top: 0.35rem;">
+                <option value="">None / Disabled</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label" for="arBotRoleSelect">Bot Account Role</label>
+              <select id="arBotRoleSelect" class="select-input" style="margin-top: 0.35rem;">
+                <option value="">None / Disabled</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= TAB 5: MAINROLE ================= -->
+      <div id="tab-mainrole" class="tab-content">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">Mainrole Privilege Guard</h2>
+            <p class="panel-desc">Protects core member roles and @everyone from privilege escalation attacks.</p>
+          </div>
+          <button class="btn btn-secondary" onclick="runMainroleScan()">Execute Instant Security Audit</button>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Protected Roles Registry</h3>
+          <p class="card-desc">Zenith will instantly strip Administrator, Ban, Kick, and Manage perms if granted to these roles.</p>
+          <div style="margin-bottom: 1rem;">
+            <label class="field-label" for="mainroleSelect">Add Role to Protected Registry</label>
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.35rem;">
+              <select id="mainroleSelect" class="select-input">
+                <option value="">Select a role...</option>
+              </select>
+              <button class="btn btn-secondary" onclick="addProtectedRole()">+ Protect Role</button>
+            </div>
+          </div>
+
+          <div class="chip-container" id="protectedRolesContainer">
+            <!-- Dynamically populated protected roles -->
+          </div>
+        </div>
+
+        <div class="card" id="auditResultCard" style="display: none;">
+          <h3 class="card-title">Audit Results</h3>
+          <div id="auditResultText" style="font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.6; margin-top: 0.5rem;"></div>
+        </div>
+      </div>
+
+      <!-- ================= TAB 6: MAINTENANCE ================= -->
+      <div id="tab-maintenance" class="tab-content">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">Server Maintenance Suite</h2>
+            <p class="panel-desc">Fast channel lockdowns, slowmode regulation, and bulk message purges.</p>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <h3 class="card-title">Channel Lockdown</h3>
+            <p class="card-desc">Denies or restores Send Messages permission for @everyone.</p>
+            <div style="margin-bottom: 1rem;">
+              <label class="field-label" for="lockChannelSelect">Target Channel</label>
+              <select id="lockChannelSelect" class="select-input" style="margin-top: 0.35rem;">
+                <option value="all">Server-Wide (All Channels)</option>
+              </select>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+              <button class="btn btn-danger" style="flex: 1;" onclick="applyLockdown(true)">[LOCK] Lock Channel</button>
+              <button class="btn btn-secondary" style="flex: 1;" onclick="applyLockdown(false)">[UNLOCK] Unlock</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 class="card-title">Bulk Message Purge</h3>
+            <p class="card-desc">Purge up to 100 recent messages in any channel with safe rate limits.</p>
+            <div style="margin-bottom: 1rem;">
+              <label class="field-label" for="purgeChannelSelect">Target Channel</label>
+              <select id="purgeChannelSelect" class="select-input" style="margin-top: 0.35rem;">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+              <input type="number" id="purgeAmount" class="text-input" style="width: 100px;" value="25" min="1" max="100">
+              <button class="btn btn-secondary" style="flex: 1;" onclick="executePurge()">Execute Purge</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= TAB 7: ANNOUNCEMENTS ================= -->
+      <div id="tab-announcements" class="tab-content">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">Announcement Dispatcher</h2>
+            <p class="panel-desc">Dispatch formatted obsidian announcement embeds to any text channel.</p>
+          </div>
+          <button class="btn btn-primary" onclick="dispatchAnnouncement()">Dispatch Announcement</button>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Composer</h3>
+          <div style="margin-bottom: 1rem;">
+            <label class="field-label" for="announceChannelSelect">Target Channel</label>
+            <select id="announceChannelSelect" class="select-input" style="margin-top: 0.35rem;">
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+          <div style="margin-bottom: 1rem;">
+            <label class="field-label" for="announceTitle">Announcement Title</label>
+            <input type="text" id="announceTitle" class="text-input" style="margin-top: 0.35rem;" placeholder="Server Maintenance Notice">
+          </div>
+          <div>
+            <label class="field-label" for="announceContent">Announcement Message Content</label>
+            <textarea id="announceContent" class="textarea-input" rows="4" style="margin-top: 0.35rem;" placeholder="Type announcement text here..."></textarea>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Real-Time Client JavaScript -->
+  <script>
+    let activeGuildId = null;
+    let currentGuildData = null;
+    let forbiddenWords = [];
+    let protectedRoles = [];
+
+    function showToast(message, isError = false) {
+      const toast = document.getElementById('toast');
+      toast.innerText = message;
+      toast.style.borderColor = isError ? 'var(--accent-red)' : 'var(--accent-blue)';
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 3500);
+    }
+
+    function switchTab(tabId, el) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      el.classList.add('active');
+    }
+
+    async function updateGatewayPing() {
+      try {
+        const res = await fetch('/api/stats');
+        const data = await res.json();
+        document.getElementById('pingCounter').innerText = Math.round(data.ping || 0);
+      } catch (err) {}
+    }
+    setInterval(updateGatewayPing, 4000);
+
+    async function loadGuilds() {
+      try {
+        const res = await fetch('/api/guilds');
+        const guilds = await res.json();
+        const select = document.getElementById('guildSelect');
+        select.innerHTML = '';
+
+        if (!guilds || guilds.length === 0) {
+          select.innerHTML = '<option value="">No Connected Servers Found</option>';
+          return;
+        }
+
+        guilds.forEach((g, idx) => {
+          const opt = document.createElement('option');
+          opt.value = g.id;
+          opt.innerText = `${g.name} (${g.members} members)`;
+          if (idx === 0) opt.selected = true;
+          select.appendChild(opt);
+        });
+
+        activeGuildId = guilds[0].id;
+        loadGuildDetails(activeGuildId);
+
+        select.addEventListener('change', (e) => {
+          activeGuildId = e.target.value;
+          loadGuildDetails(activeGuildId);
+        });
+      } catch (err) {
+        showToast('[ERROR] Failed to fetch server list from bot instance.', true);
+      }
+    }
+
+    async function loadGuildDetails(guildId) {
+      if (!guildId) return;
+      try {
+        const res = await fetch(`/api/guild/${guildId}`);
+        const data = await res.json();
+        currentGuildData = data;
+
+        // 1. Overview
+        document.getElementById('overviewGuildName').innerText = data.name;
+        document.getElementById('overviewGuildId').innerText = `Guild ID: ${data.id} • Sharded Engine Active`;
+        document.getElementById('ovMemberCount').innerText = (data.member_count || 0).toLocaleString();
+        document.getElementById('ovChannelCount').innerText = data.channels ? data.channels.length : 0;
+        document.getElementById('ovRoleCount').innerText = data.roles ? data.roles.length : 0;
+        document.getElementById('ovOwnerId').innerText = data.owner_id || 'Unknown';
+        document.getElementById('ovAntinukeState').innerText = (data.antinuke && data.antinuke.enabled) ? '[ACTIVE]' : '[OFF]';
+
+        // 2. Channels Selects
+        populateChannelDropdowns(data.channels || []);
+
+        // 3. Roles Selects
+        populateRoleDropdowns(data.roles || []);
+
+        // 4. Antinuke config
+        if (data.antinuke) {
+          document.getElementById('anMasterEnabled').checked = data.antinuke.enabled !== false;
+          document.getElementById('anAntiBan').checked = data.antinuke.anti_ban !== false;
+          document.getElementById('anAntiKick').checked = data.antinuke.anti_kick !== false;
+          document.getElementById('anAntiBot').checked = data.antinuke.anti_bot !== false;
+          document.getElementById('anAntiChannel').checked = data.antinuke.anti_channel !== false;
+          document.getElementById('anAntiRole').checked = data.antinuke.anti_role !== false;
+          document.getElementById('anAntiWebhook').checked = data.antinuke.anti_webhook !== false;
+          document.getElementById('anAntiPrune').checked = data.antinuke.anti_prune !== false;
+          document.getElementById('anPunishmentSelect').value = data.antinuke.punishment || 'ban';
+        }
+
+        // 5. Automod config
+        if (data.automod) {
+          document.getElementById('amAntiSpam').checked = data.automod.anti_spam !== false;
+          document.getElementById('amAntiInvites').checked = data.automod.anti_invites !== false;
+          document.getElementById('amAntiLinks').checked = !!data.automod.anti_links;
+          document.getElementById('amAntiCaps').checked = data.automod.anti_caps !== false;
+          document.getElementById('amMassMention').checked = data.automod.mass_mention !== false;
+          forbiddenWords = data.automod.words || [];
+          renderWords();
+        }
+
+        // 6. Welcome config
+        if (data.welcome) {
+          document.getElementById('welcomeChannelSelect').value = data.welcome.channel_id || '';
+          document.getElementById('welcomeMessageText').value = data.welcome.message || '';
+          document.getElementById('arHumanRoleSelect').value = data.welcome.autorole_human || '';
+          document.getElementById('arBotRoleSelect').value = data.welcome.autorole_bot || '';
+        }
+
+        // 7. Mainrole config
+        protectedRoles = data.mainroles || [];
+        renderProtectedRoles();
+
+        showToast(`[OK] Synchronized ${data.name} in 8ms`);
+      } catch (err) {
+        showToast('[ERROR] Failed to fetch live server data.', true);
+      }
+    }
+
+    function populateChannelDropdowns(channels) {
+      const selects = [
+        document.getElementById('welcomeChannelSelect'),
+        document.getElementById('lockChannelSelect'),
+        document.getElementById('purgeChannelSelect'),
+        document.getElementById('announceChannelSelect')
+      ];
+
+      selects.forEach(sel => {
+        if (!sel) return;
+        const currentVal = sel.value;
+        const isLock = sel.id === 'lockChannelSelect';
+        sel.innerHTML = isLock ? '<option value="all">Server-Wide (All Channels)</option>' : '<option value="">None / Select Channel</option>';
+        channels.filter(c => c.type === 'text').forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.id;
+          opt.innerText = `#${c.name}`;
+          sel.appendChild(opt);
+        });
+        if (currentVal) sel.value = currentVal;
+      });
+    }
+
+    function populateRoleDropdowns(roles) {
+      const selects = [
+        document.getElementById('arHumanRoleSelect'),
+        document.getElementById('arBotRoleSelect'),
+        document.getElementById('mainroleSelect')
+      ];
+
+      selects.forEach(sel => {
+        if (!sel) return;
+        const currentVal = sel.value;
+        sel.innerHTML = '<option value="">None / Select Role</option>';
+        roles.filter(r => !r.is_default && !r.managed).forEach(r => {
+          const opt = document.createElement('option');
+          opt.value = r.id;
+          opt.innerText = `@${r.name}`;
+          sel.appendChild(opt);
+        });
+        if (currentVal) sel.value = currentVal;
+      });
+    }
+
+    function renderWords() {
+      const c = document.getElementById('wordsContainer');
+      c.innerHTML = '';
+      forbiddenWords.forEach(w => {
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.innerHTML = `<span>${w}</span><span class="chip-remove" onclick="removeWord('${w}')">[x]</span>`;
+        c.appendChild(chip);
+      });
+    }
+
+    function addForbiddenWord() {
+      const inp = document.getElementById('newWordInput');
+      const val = inp.value.trim().toLowerCase();
+      if (!val) return;
+      if (!forbiddenWords.includes(val)) {
+        forbiddenWords.push(val);
+        renderWords();
+      }
+      inp.value = '';
+    }
+
+    function removeWord(word) {
+      forbiddenWords = forbiddenWords.filter(w => w !== word);
+      renderWords();
+    }
+
+    function renderProtectedRoles() {
+      const c = document.getElementById('protectedRolesContainer');
+      c.innerHTML = '';
+      if (!currentGuildData || !currentGuildData.roles) return;
+      protectedRoles.forEach(rid => {
+        const role = currentGuildData.roles.find(r => r.id === rid);
+        const name = role ? role.name : rid;
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.innerHTML = `<span>@${name}</span><span class="chip-remove" onclick="removeProtectedRole('${rid}')">[x]</span>`;
+        c.appendChild(chip);
+      });
+    }
+
+    function addProtectedRole() {
+      const sel = document.getElementById('mainroleSelect');
+      const rid = sel.value;
+      if (!rid) return;
+      if (!protectedRoles.includes(rid)) {
+        protectedRoles.push(rid);
+        renderProtectedRoles();
+      }
+    }
+
+    function removeProtectedRole(rid) {
+      protectedRoles = protectedRoles.filter(r => r !== rid);
+      renderProtectedRoles();
+    }
+
+    // Save Handlers
+    async function saveAntinukeSettings() {
+      if (!activeGuildId) return;
+      const payload = {
+        enabled: document.getElementById('anMasterEnabled').checked,
+        anti_ban: document.getElementById('anAntiBan').checked,
+        anti_kick: document.getElementById('anAntiKick').checked,
+        anti_bot: document.getElementById('anAntiBot').checked,
+        anti_channel: document.getElementById('anAntiChannel').checked,
+        anti_role: document.getElementById('anAntiRole').checked,
+        anti_webhook: document.getElementById('anAntiWebhook').checked,
+        anti_prune: document.getElementById('anAntiPrune').checked,
+        punishment: document.getElementById('anPunishmentSelect').value
+      };
+      const res = await fetch(`/api/guild/${activeGuildId}/antinuke`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) showToast('[OK] Antinuke configuration saved in memory & database.');
+      else showToast('[ERROR] Failed to save antinuke settings.', true);
+    }
+
+    async function saveAutomodSettings() {
+      if (!activeGuildId) return;
+      const payload = {
+        anti_spam: document.getElementById('amAntiSpam').checked,
+        anti_invites: document.getElementById('amAntiInvites').checked,
+        anti_links: document.getElementById('amAntiLinks').checked,
+        anti_caps: document.getElementById('amAntiCaps').checked,
+        mass_mention: document.getElementById('amMassMention').checked,
+        words: forbiddenWords
+      };
+      const res = await fetch(`/api/guild/${activeGuildId}/automod`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) showToast('[OK] Automod matrix and term filters applied.');
+      else showToast('[ERROR] Failed to save automod matrix.', true);
+    }
+
+    async function saveWelcomeSettings() {
+      if (!activeGuildId) return;
+      const payload = {
+        channel_id: document.getElementById('welcomeChannelSelect').value,
+        message: document.getElementById('welcomeMessageText').value,
+        autorole_human: document.getElementById('arHumanRoleSelect').value,
+        autorole_bot: document.getElementById('arBotRoleSelect').value
+      };
+      const res = await fetch(`/api/guild/${activeGuildId}/welcome`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) showToast('[OK] Welcome greetings and autoroles updated.');
+      else showToast('[ERROR] Failed to save onboarding settings.', true);
+    }
+
+    async function triggerEmergencyPanic() {
+      if (!activeGuildId || !confirm('Execute emergency lockdown protocol on this guild?')) return;
+      const res = await fetch(`/api/guild/${activeGuildId}/lockdown`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ action: 'lock', channel_id: 'all' })
+      });
+      if (res.ok) showToast('[EMERGENCY] Panic lockdown dispatched to all channels.');
+      else showToast('[ERROR] Panic lockdown execution failed.', true);
+    }
+
+    async function applyLockdown(isLock) {
+      if (!activeGuildId) return;
+      const ch = document.getElementById('lockChannelSelect').value;
+      const res = await fetch(`/api/guild/${activeGuildId}/lockdown`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ action: isLock ? 'lock' : 'unlock', channel_id: ch })
+      });
+      if (res.ok) showToast(`[OK] ${isLock ? 'Lock' : 'Unlock'} operation completed.`);
+      else showToast('[ERROR] Lockdown action failed.', true);
+    }
+
+    async function executePurge() {
+      if (!activeGuildId) return;
+      const ch = document.getElementById('purgeChannelSelect').value;
+      const amt = parseInt(document.getElementById('purgeAmount').value) || 25;
+      if (!ch) return showToast('[ERROR] Select a channel to purge.', true);
+      const res = await fetch(`/api/guild/${activeGuildId}/purge`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ channel_id: ch, amount: amt })
+      });
+      if (res.ok) showToast(`[OK] Purged ${amt} messages.`);
+      else showToast('[ERROR] Purge failed.', true);
+    }
+
+    async function runMainroleScan() {
+      if (!activeGuildId) return;
+      const res = await fetch(`/api/guild/${activeGuildId}/mainrole/scan`, { method: 'POST' });
+      const data = await res.json();
+      const card = document.getElementById('auditResultCard');
+      const txt = document.getElementById('auditResultText');
+      card.style.display = 'block';
+      txt.innerText = data.details || 'Audit Scan Completed. All roles verified clean.';
+      showToast('[OK] Mainrole audit executed.');
+    }
+
+    async function dispatchAnnouncement() {
+      if (!activeGuildId) return;
+      const ch = document.getElementById('announceChannelSelect').value;
+      const title = document.getElementById('announceTitle').value.trim();
+      const content = document.getElementById('announceContent').value.trim();
+      if (!ch || !content) return showToast('[ERROR] Channel and message content are required.', true);
+      const res = await fetch(`/api/guild/${activeGuildId}/say`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ channel_id: ch, title, content })
+      });
+      if (res.ok) {
+        showToast('[OK] Announcement embed dispatched to Discord.');
+        document.getElementById('announceTitle').value = '';
+        document.getElementById('announceContent').value = '';
+      } else {
+        showToast('[ERROR] Announcement dispatch failed.', true);
+      }
+    }
+
+    function reloadGuildData() {
+      if (activeGuildId) loadGuildDetails(activeGuildId);
+    }
+
+    window.onload = loadGuilds;
+  </script>
+</body>
+</html>

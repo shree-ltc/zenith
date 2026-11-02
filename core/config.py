@@ -47,6 +47,11 @@ class Config:
     COLOR_ERROR: int = int(os.getenv("COLOR_ERROR", "ED4245"), 16)
     COLOR_NEUTRAL: int = int(os.getenv("COLOR_NEUTRAL", "2B2D31"), 16)
 
+    # Dashboard & Web Server
+    DASHBOARD_ENABLED: bool = os.getenv("DASHBOARD_ENABLED", "true").lower() in ("true", "1", "yes")
+    DASHBOARD_HOST: str = os.getenv("DASHBOARD_HOST", "0.0.0.0")
+    DASHBOARD_PORT: int = int(os.getenv("DASHBOARD_PORT", "8080"))
+
     # Defaults
     ANTINUKE_PUNISHMENT: str = os.getenv("ANTINUKE_PUNISHMENT", "ban")
     MAX_PURGE_LIMIT: int = int(os.getenv("MAX_PURGE_LIMIT", "500"))

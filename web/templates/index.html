@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith • Enterprise Discord Security &amp; Server Automation</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/dashboard.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="brand">
+      <img src="/static/logo.svg" alt="Zenith Logo" class="brand-logo">
+      <span class="brand-name">Zenith</span>
+      <span class="brand-badge">v1.0.0</span>
+    </div>
+    <div class="nav-links">
+      <a href="#features" class="nav-link">Features</a>
+      <a href="#architecture" class="nav-link">Architecture</a>
+      <a href="https://github.com/shree-ltc/zenith" target="_blank" class="nav-link">GitHub</a>
+      <div class="status-pill">
+        <span class="status-indicator"></span>
+        <span>ONLINE</span>
+      </div>
+      <a href="/dashboard" class="btn btn-primary">Launch Dashboard</a>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <header class="hero">
+    <div class="hero-tag">ENTERPRISE DISCORD DEFENSE ARCHITECTURE</div>
+    <h1 class="hero-title">High-Performance Discord Security &amp; Autonomous Administration</h1>
+    <p class="hero-desc">
+      Zenith provides real-time gateway audit analysis, instant privilege escalation neutralization, 
+      autonomous raid mitigation, and 503 distinct command endpoints with unified dark obsidian styling.
+    </p>
+    <div class="hero-actions">
+      <a href="/dashboard" class="btn btn-primary" style="padding: 0.8rem 1.8rem; font-size: 1rem;">Open Server Dashboard</a>
+      <a href="https://github.com/shree-ltc/zenith" target="_blank" class="btn btn-secondary" style="padding: 0.8rem 1.8rem; font-size: 1rem;">Explore GitHub Source</a>
+    </div>
+  </header>
+
+  <!-- Live Stats Strip -->
+  <section class="stats-strip">
+    <div class="stat-card">
+      <div class="stat-value" id="statsGuilds">--</div>
+      <div class="stat-label">Connected Guilds</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statsMembers">--</div>
+      <div class="stat-label">Cached Members</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statsEndpoints">503</div>
+      <div class="stat-label">Command Endpoints</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statsTriggers">813</div>
+      <div class="stat-label">Invocable Triggers</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statsLatency">-- ms</div>
+      <div class="stat-label">Gateway Latency</div>
+    </div>
+  </section>
+
+  <!-- Features Grid -->
+  <section class="features-section" id="features">
+    <div class="section-header">
+      <h2 class="section-title">Core Systems</h2>
+      <p class="section-subtitle">Engineered for absolute resilience, zero downtime, and zero privilege escalation.</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <span class="feature-tag">[SECURITY] MAINROLE GUARD</span>
+        <h3 class="feature-title">Privilege Escalation Shield</h3>
+        <p class="feature-desc">
+          Protects @everyone and verified member roles from receiving dangerous administrative permissions.
+          Intercepts permission grants on the gateway and strips them within 0.5s back to safe states.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-tag">[DEFENSE] REAL-TIME ANTINUKE</span>
+        <h3 class="feature-title">Autonomous Raid Defense</h3>
+        <p class="feature-desc">
+          Monitors audit logs for unauthorized channel deletions, role tampering, rogue bot additions,
+          and member purges. Instantly neutralizes offending actors and reverts destructive actions.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-tag">[VELOCITY] ANTI-BETRAY PROTOCOL</span>
+        <h3 class="feature-title">Compromised Account Mitigation</h3>
+        <p class="feature-desc">
+          Tracks moderator velocity in rolling time windows. When administrative actions exceed safety
+          thresholds, the actor is immediately stripped of staff roles and quarantined.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-tag">[MODERATION] FAKE PERMISSIONS</span>
+        <h3 class="feature-title">Zero-Trust Staff Authorization</h3>
+        <p class="feature-desc">
+          Grants Zenith moderation authority to staff roles without assigning native Discord permissions,
+          guarded by daily action quotas to prevent token misuse or moderator abuse.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-tag">[PURIFICATION] PURGE MATRIX</span>
+        <h3 class="feature-title">Target-Specific Message Purge</h3>
+        <p class="feature-desc">
+          15 dedicated purification commands designed for clean message sweeps: bots, links, embeds,
+          attachments, mentions, reactions, and specific users with safe rate limits.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <span class="feature-tag">[STREAMING] AUDIO ENGINE</span>
+        <h3 class="feature-title">Lavalink &amp; Smart Autoplay</h3>
+        <p class="feature-desc">
+          High-fidelity audio streaming integrated with YouTube RD Mix and parallel artist discovery
+          that continuously queues non-repeating related tracks.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+      <img src="/static/logo.svg" alt="Zenith" style="width: 20px; height: 20px;">
+      <span style="font-weight: 600; color: #FFFFFF;">Zenith Architecture</span>
+    </div>
+    <p>Engineered by <a href="https://github.com/shree-ltc" target="_blank" style="color: var(--accent-blue); text-decoration: underline;">Shree</a> • Open-Source MIT License</p>
+    <p style="margin-top: 0.5rem; font-family: var(--font-mono); font-size: 0.75rem;">Discord: shree.ltc (1465912900710305822) • Real-Time Engine Active</p>
+  </footer>
+
+  <script>
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/stats');
+        const data = await res.json();
+        document.getElementById('statsGuilds').innerText = (data.guilds || 0).toLocaleString();
+        document.getElementById('statsMembers').innerText = (data.members || 0).toLocaleString();
+        document.getElementById('statsEndpoints').innerText = (data.endpoints || 503).toLocaleString();
+        document.getElementById('statsTriggers').innerText = (data.triggers || 813).toLocaleString();
+        document.getElementById('statsLatency').innerText = Math.round(data.ping || 0) + ' ms';
+      } catch (err) {
+        console.warn('Real-time stats poller: connection offline or initializing.');
+      }
+    }
+    loadStats();
+    setInterval(loadStats, 5000);
+  </script>
+</body>
+</html>

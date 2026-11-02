@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0E0E12" />
+      <stop offset="100%" stop-color="#050507" />
+    </linearGradient>
+    <linearGradient id="zGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="60%" stop-color="#E2E4E9" />
+      <stop offset="100%" stop-color="#9BA1B0" />
+    </linearGradient>
+    <filter id="subtleGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Dark Obsidian Canvas -->
+  <rect width="512" height="512" rx="108" fill="url(#bg)" />
+  <rect width="510" height="510" x="1" y="1" rx="107" fill="none" stroke="#22232B" stroke-width="2" />
+
+  <!-- Inner Subtle Hairline Ring -->
+  <rect width="472" height="472" x="20" y="20" rx="90" fill="none" stroke="#16171E" stroke-width="1.5" />
+
+  <!-- Nano Minimalist Geometric 'Z' Mark -->
+  <g filter="url(#subtleGlow)">
+    <path d="
+      M 132 144
+      L 380 144
+      L 380 196
+      L 230 316
+      L 380 316
+      L 380 368
+      L 132 368
+      L 132 316
+      L 282 196
+      L 132 196
+      Z
+    " fill="url(#zGrad)" />
+  </g>
+
+  <!-- Minimalist Status Dot -->
+  <circle cx="380" cy="144" r="5" fill="#5865F2" />
+</svg>
