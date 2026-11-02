@@ -1,9 +1,6 @@
 """
-cogs/antinuke.py - Military-Grade Anti-Nuke & Server Defense Subsystem for Zenith
-
-Monitors audit logs in real-time for unauthorized guild modifications (mass bans,
-kicks, channel purges, role tampering, rogue bot additions, webhook hijacking).
-Instantly punishes offenders and restores equilibrium.
+Antinuke system monitoring audit logs for unauthorized guild changes.
+Intercepts mass bans, kicks, channel purges, role tampering, and rogue bots.
 """
 
 import asyncio
@@ -101,8 +98,8 @@ class Antinuke(commands.Cog):
             channel = guild.get_channel(log_channel_id)
             if channel and isinstance(channel, discord.TextChannel):
                 embed = ZenithEmbed(
-                    title="🛡️ Antinuke Security Alert",
-                    description=f"A unauthorized high-risk event was intercepted and neutralized.",
+                    title="Antinuke Security Alert",
+                    description="An unauthorized action was detected and intercepted.",
                     color=Color.ERROR
                 )
                 embed.add_field(name="Target Action", value=f"`{action}`", inline=True)

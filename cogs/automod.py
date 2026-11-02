@@ -1,8 +1,5 @@
 """
-cogs/automod.py - Real-Time Chat Security & Automod Subsystem for Zenith
-
-Scans incoming message payloads with low latency for spam bursts, unauthorized
-invite links, external URLs, excessive capitalization, and mass mentions.
+Automod filtering for spam, invite links, URLs, and excessive mentions.
 """
 
 import re
@@ -142,7 +139,7 @@ class Automod(commands.Cog):
         cfg = await self.get_automod_config(ctx.guild.id) or {}
 
         def format_state(val: bool) -> str:
-            return "🟢 Enabled" if val else "🔴 Disabled"
+            return "Enabled" if val else "Disabled"
 
         embed = ZenithEmbed(
             title="Zenith Automod Configuration",

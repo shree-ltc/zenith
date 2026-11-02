@@ -1,8 +1,5 @@
 """
-cogs/owner.py - Developer Operations & Runtime Diagnostics for Zenith
-
-Reserved exclusively for bot developers to hot-reload extensions, synchronize
-slash command trees, evaluate live expressions, and manage deployments.
+Developer operations: hot-reloads, slash syncing, and evaluation.
 """
 
 import io
@@ -69,9 +66,9 @@ class Owner(commands.Cog):
             except Exception as e:
                 failures.append(f"{file.stem} ({e})")
 
-        desc = f"✓ Reloaded **{len(reloaded)}** modules: " + ", ".join(f"`{m}`" for m in reloaded)
+        desc = f"Reloaded {len(reloaded)} modules: " + ", ".join(f"`{m}`" for m in reloaded)
         if failures:
-            desc += "\n\n✕ **Failures:**\n" + "\n".join(f"• `{f}`" for f in failures)
+            desc += "\n\nFailures:\n" + "\n".join(f"• `{f}`" for f in failures)
 
         embed = ZenithEmbed(
             title="System Hot-Reload",

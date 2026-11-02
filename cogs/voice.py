@@ -1,8 +1,5 @@
 """
-cogs/voice.py - Dynamic Join-to-Create Voice Channels (TempVC) for Zenith
-
-Automatically generates private, customizable voice channels when members connect
-to a designated hub, and purges empty rooms once members disconnect.
+Join-to-create temporary voice channels with automated room cleanup.
 """
 
 from typing import Optional

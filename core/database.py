@@ -1,9 +1,6 @@
 """
-core/database.py - Resilient Hybrid Database & Caching Engine for Zenith
-
-Supports high-throughput PostgreSQL + Redis for production deployments,
-while seamlessly falling back to aiosqlite + in-memory TTL caching for
-instant plug-and-play development without external dependencies.
+Database abstraction layer.
+Uses PostgreSQL and Redis when configured, falling back to SQLite and local cache.
 """
 
 import time

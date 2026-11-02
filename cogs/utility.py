@@ -1,8 +1,5 @@
 """
-cogs/utility.py - Comprehensive Server Intelligence & Member Utilities for Zenith
-
-Provides deep guild analytics, account inspection, role/channel queries,
-real-time system telemetry, message snipe caches, and Discord avatar lookups.
+Utility commands: userinfo, serverinfo, avatar, botinfo, ping, and snipe.
 """
 
 import time
@@ -235,8 +232,8 @@ class Utility(commands.Cog):
         embed.add_field(name="System Uptime", value=f"`{uptime_str}`", inline=True)
 
         embed.add_field(name="Discord.py Version", value=f"`v{discord.__version__}`", inline=True)
-        embed.add_field(name="Default Prefix", value=f"`{config.DEFAULT_PREFIX}`", inline=True)
-        embed.add_field(name="Open-Source", value=f"[GitHub Repository]({config.WEBSITE})", inline=True)
+        embed.add_field(name="Developer", value=f"{config.AUTHOR}", inline=True)
+        embed.add_field(name="Repository", value=f"[GitHub]({config.GITHUB_URL})", inline=True)
 
         await ctx.reply(embed=embed, mention_author=False)
 

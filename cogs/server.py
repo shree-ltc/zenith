@@ -1,8 +1,5 @@
 """
-cogs/server.py - Advanced Server Administration & Mass Utilities for Zenith
-
-Features full-server lockdowns, channel nuking/cloning, bulk dehoisting,
-audit log inspection, booster lists, invite tracking, and role membership directories.
+Server administration tools: channel nuking, lockdowns, dehoist, and role listings.
 """
 
 from typing import Optional
@@ -43,9 +40,8 @@ class Server(commands.Cog):
 
             nuke_embed = ZenithEmbed.success(
                 "Channel Nuked",
-                f"This channel has been cleansed and reconstructed by {ctx.author.mention}."
+                f"This channel has been recreated by {ctx.author.mention}."
             )
-            nuke_embed.set_image(url="https://media.giphy.com/media/HhTXt43pk1I1W/giphy.gif")
             await new_channel.send(embed=nuke_embed)
         else:
             await msg.edit(embed=ZenithEmbed.info("Cancelled", "Nuke sequence aborted."), view=None)

@@ -1,8 +1,5 @@
 """
-cogs/welcome.py - Automated Member Onboarding & Autorole Subsystem for Zenith
-
-Dispatches custom greeting embeds, assigns initial roles to newly verified
-humans or bot accounts, and delivers welcome DMs.
+Member greeting delivery and automatic role allocation.
 """
 
 from typing import Optional
@@ -88,7 +85,7 @@ class Welcome(commands.Cog):
         """Displays welcome configuration options."""
         cfg = await db.fetchrow("SELECT * FROM welcome_config WHERE guild_id = ?", ctx.guild.id) or {}
         ch = f"<#{cfg.get('channel_id')}>" if cfg.get("channel_id") else "`Disabled`"
-        status = "🟢 Enabled" if cfg.get("enabled") else "🔴 Disabled"
+        status = "Enabled" if cfg.get("enabled") else "Disabled"
 
         embed = ZenithEmbed(
             title="Zenith Welcome Dashboard",

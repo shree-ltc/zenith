@@ -1,8 +1,6 @@
 """
-core/errors.py - Bulletproof Global Error Handling System for Zenith
-
-Intercepts and handles every command failure gracefully, translating cryptic
-exceptions into polished, helpful interface embeds while logging full tracebacks.
+Global command error handler.
+Translates exceptions into user-friendly responses and logs unexpected errors.
 """
 
 import sys

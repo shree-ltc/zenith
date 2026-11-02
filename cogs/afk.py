@@ -1,8 +1,5 @@
 """
-cogs/afk.py - Away-From-Keyboard (AFK) Status Tracker for Zenith
-
-Maintains member availability statuses, notifies users when they mention someone
-away from keyboard, and automatically clears AFK flags upon their return.
+AFK tracking and automatic mention responses.
 """
 
 import time

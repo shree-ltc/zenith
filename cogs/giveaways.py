@@ -1,8 +1,5 @@
 """
-cogs/giveaways.py - Interactive Community Giveaways for Zenith
-
-Enables automated, transparent prize drawings with customizable durations,
-winner capacities, live reaction tracking, and instant rerolls.
+Community giveaway system with duration parsing and random winner selection.
 """
 
 import time
@@ -29,12 +26,12 @@ class GiveawayView(ui.View):
         self.message_id = message_id
         self.entrants: set[int] = set()
 
-    @ui.button(label="Enter Giveaway (0)", style=discord.ButtonStyle.primary, emoji="🎉", custom_id="zenith:giveaway:enter")
+    @ui.button(label="Enter (0)", style=discord.ButtonStyle.primary, custom_id="zenith:giveaway:enter")
     async def enter_button(self, interaction: discord.Interaction, button: ui.Button):
         user_id = interaction.user.id
         if user_id in self.entrants:
             self.entrants.remove(user_id)
-            button.label = f"Enter Giveaway ({len(self.entrants)})"
+            button.label = f"Enter ({len(self.entrants)})"
             await interaction.response.edit_message(view=self)
             return await interaction.followup.send(
                 embed=ZenithEmbed.info("Entry Withdrawn", "You have stepped out of this giveaway."),
@@ -42,7 +39,7 @@ class GiveawayView(ui.View):
             )
 
         self.entrants.add(user_id)
-        button.label = f"Enter Giveaway ({len(self.entrants)})"
+        button.label = f"Enter ({len(self.entrants)})"
         await interaction.response.edit_message(view=self)
         await interaction.followup.send(
             embed=ZenithEmbed.success("Entered Successfully", "You are now in the running to win!"),
@@ -69,8 +66,8 @@ class Giveaways(commands.Cog):
 
         if not view.entrants:
             embed = ZenithEmbed(
-                title=f"🎉 Giveaway Concluded — {prize}",
-                description="The drawing ended with **no participants**.",
+                title=f"Giveaway Concluded — {prize}",
+                description="The drawing ended with no participants.",
                 color=Color.MUTED
             )
             return await message.reply(embed=embed)
@@ -80,11 +77,11 @@ class Giveaways(commands.Cog):
         winner_mentions = ", ".join(f"<@{uid}>" for uid in actual_winners)
 
         embed = ZenithEmbed(
-            title=f"🎉 Giveaway Concluded — {prize}",
-            description=f"**Winner(s):** {winner_mentions}\nHosted by: Zenith",
+            title=f"Giveaway Concluded — {prize}",
+            description=f"Winner(s): {winner_mentions}\nHosted by: Zenith",
             color=Color.SUCCESS
         )
-        await message.reply(content=f"Congratulations {winner_mentions}! You won **{prize}**!", embed=embed)
+        await message.reply(content=f"Congratulations {winner_mentions}! You won **{prize}**.", embed=embed)
         await db.execute("UPDATE giveaways SET ended = TRUE WHERE message_id = ?", message.id)
 
     @commands.group(name="giveaway", aliases=["g", "gstart"], invoke_without_command=True)
@@ -115,12 +112,12 @@ class Giveaways(commands.Cog):
 
         end_ts = int(time.time() + delta.total_seconds())
         embed = ZenithEmbed(
-            title=f"🎉 GIVEAWAY: {prize}",
+            title=f"Giveaway: {prize}",
             description=(
-                f"Click the button below to participate!\n\n"
-                f"• **Winners:** {winners}\n"
-                f"• **Closes:** <t:{end_ts}:R> (<t:{end_ts}:f>)\n"
-                f"• **Hosted by:** {ctx.author.mention}"
+                f"Click the button below to enter.\n\n"
+                f"Winners: **{winners}**\n"
+                f"Ends: <t:{end_ts}:R> (<t:{end_ts}:f>)\n"
+                f"Hosted by: {ctx.author.mention}"
             ),
             color=Color.PRIMARY
         )

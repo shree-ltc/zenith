@@ -1,8 +1,5 @@
 """
-cogs/economy.py - Comprehensive Virtual Economy & Mini-Banking Engine for Zenith
-
-Features multi-account balances (wallet & bank), daily dividends, occupational work,
-peer-to-peer transfers, casino slot machines, robbery, and server wealth leaderboards.
+Virtual economy system with wallet and bank tracking.
 """
 
 import random
@@ -72,11 +69,11 @@ class Economy(commands.Cog):
         bank = data["bank"]
         net_worth = wallet + bank
 
-        embed = ZenithEmbed(title=f"{user.display_name}'s Financial Portfolio", color=Color.PRIMARY)
+        embed = ZenithEmbed(title=f"{user.display_name}'s Balance", color=Color.PRIMARY)
         embed.set_thumbnail(url=user.display_avatar.url)
-        embed.add_field(name="Wallet Cash", value=f"🪙 **${wallet:,}**", inline=True)
-        embed.add_field(name="Bank Deposit", value=f"🏛️ **${bank:,}**", inline=True)
-        embed.add_field(name="Net Worth", value=f"💎 **${net_worth:,}**", inline=True)
+        embed.add_field(name="Wallet", value=f"${wallet:,}", inline=True)
+        embed.add_field(name="Bank", value=f"${bank:,}", inline=True)
+        embed.add_field(name="Net Worth", value=f"${net_worth:,}", inline=True)
 
         await ctx.reply(embed=embed, mention_author=False)
 
@@ -89,7 +86,7 @@ class Economy(commands.Cog):
             "UPDATE user_economy SET wallet = wallet + ?, last_daily = ? WHERE guild_id = ? AND user_id = ?",
             reward, time.time(), ctx.guild.id, ctx.author.id
         )
-        embed = ZenithEmbed.success("Daily Dividend Claimed", f"You collected your daily paycheck of 🪙 **${reward:,}**!")
+        embed = ZenithEmbed.success("Daily Claimed", f"Collected daily dividend of **${reward:,}**.")
         await ctx.reply(embed=embed, mention_author=False)
 
     @commands.command(name="work")
@@ -97,12 +94,12 @@ class Economy(commands.Cog):
     async def work_command(self, ctx: commands.Context):
         """Works an hourly shift for cash ($100 - $400)."""
         jobs = [
-            ("fixed a memory leak in a Linux server", 250),
+            ("fixed a memory leak in a server daemon", 250),
             ("audited an antinuke security module", 320),
-            ("designed a high-converting UI landing page", 210),
-            ("refactored asynchronous database queries", 380),
-            ("debugged WebSocket connection issues", 180),
-            ("deployed a high-availability Docker container", 290)
+            ("optimized database indexing and query speed", 210),
+            ("refactored asynchronous connection pools", 380),
+            ("resolved network latency bottlenecks", 180),
+            ("deployed a high-availability container", 290)
         ]
         task, wage = random.choice(jobs)
         wage += random.randint(-20, 50)
@@ -111,7 +108,7 @@ class Economy(commands.Cog):
             "UPDATE user_economy SET wallet = wallet + ?, last_work = ? WHERE guild_id = ? AND user_id = ?",
             wage, time.time(), ctx.guild.id, ctx.author.id
         )
-        embed = ZenithEmbed.success("Shift Completed", f"You {task} and earned 🪙 **${wage:,}**!")
+        embed = ZenithEmbed.success("Shift Completed", f"You {task} and earned **${wage:,}**.")
         await ctx.reply(embed=embed, mention_author=False)
 
     @commands.command(name="deposit", aliases=["dep"])
@@ -131,13 +128,13 @@ class Economy(commands.Cog):
         if to_dep <= 0:
             return await ctx.reply(embed=ZenithEmbed.error("Invalid Amount", "You cannot deposit zero or negative funds."), mention_author=False)
         if to_dep > wallet:
-            return await ctx.reply(embed=ZenithEmbed.error("Insufficient Funds", f"You only have 🪙 **${wallet:,}** in your wallet."), mention_author=False)
+            return await ctx.reply(embed=ZenithEmbed.error("Insufficient Funds", f"You only have **${wallet:,}** in your wallet."), mention_author=False)
 
         await db.execute(
             "UPDATE user_economy SET wallet = wallet - ?, bank = bank + ? WHERE guild_id = ? AND user_id = ?",
             to_dep, to_dep, ctx.guild.id, ctx.author.id
         )
-        embed = ZenithEmbed.success("Bank Deposit", f"Safely stored 🪙 **${to_dep:,}** into your bank account.")
+        embed = ZenithEmbed.success("Deposit Successful", f"Deposited **${to_dep:,}** into your bank.")
         await ctx.reply(embed=embed, mention_author=False)
 
     @commands.command(name="withdraw", aliases=["with"])
@@ -157,13 +154,13 @@ class Economy(commands.Cog):
         if to_with <= 0:
             return await ctx.reply(embed=ZenithEmbed.error("Invalid Amount", "You cannot withdraw zero or negative funds."), mention_author=False)
         if to_with > bank:
-            return await ctx.reply(embed=ZenithEmbed.error("Insufficient Funds", f"You only have 🏛️ **${bank:,}** in your bank account."), mention_author=False)
+            return await ctx.reply(embed=ZenithEmbed.error("Insufficient Funds", f"You only have **${bank:,}** in your bank account."), mention_author=False)
 
         await db.execute(
             "UPDATE user_economy SET bank = bank - ?, wallet = wallet + ? WHERE guild_id = ? AND user_id = ?",
             to_with, to_with, ctx.guild.id, ctx.author.id
         )
-        embed = ZenithEmbed.success("Bank Withdrawal", f"Withdrew 🪙 **${to_with:,}** from your vault.")
+        embed = ZenithEmbed.success("Withdrawal Successful", f"Withdrew **${to_with:,}** from your bank.")
         await ctx.reply(embed=embed, mention_author=False)
 
     @commands.command(name="pay", aliases=["transfer", "give"])
@@ -180,50 +177,49 @@ class Economy(commands.Cog):
 
         # Deduct from author, credit recipient
         await db.execute("UPDATE user_economy SET wallet = wallet - ? WHERE guild_id = ? AND user_id = ?", amount, ctx.guild.id, ctx.author.id)
-        # Ensure recipient row exists
         await self.get_balance(ctx.guild.id, recipient.id)
         await db.execute("UPDATE user_economy SET wallet = wallet + ? WHERE guild_id = ? AND user_id = ?", amount, ctx.guild.id, recipient.id)
 
-        embed = ZenithEmbed.success("Payment Executed", f"Transferred 🪙 **${amount:,}** to {recipient.mention}.")
+        embed = ZenithEmbed.success("Payment Sent", f"Transferred **${amount:,}** to {recipient.mention}.")
         await ctx.reply(embed=embed, mention_author=False)
 
     @commands.command(name="slots", aliases=["gamble", "slot"])
     async def slots_command(self, ctx: commands.Context, bet: int):
-        """Plays the casino slot machine with your wallet cash."""
+        """Plays the slot game with your wallet cash."""
         if bet < 10:
-            return await ctx.reply(embed=ZenithEmbed.error("Minimum Bet", "The minimum bet is 🪙 **$10**."), mention_author=False)
+            return await ctx.reply(embed=ZenithEmbed.error("Minimum Bet", "The minimum bet is **$10**."), mention_author=False)
 
         data = await self.get_balance(ctx.guild.id, ctx.author.id)
         if bet > data["wallet"]:
             return await ctx.reply(embed=ZenithEmbed.error("Insufficient Funds", "You do not have enough cash in your wallet."), mention_author=False)
 
-        reels = ["🍒", "🍋", "🍇", "🔔", "💎", "7️⃣"]
+        reels = ["A", "K", "Q", "J", "10", "7"]
         s1 = random.choice(reels)
         s2 = random.choice(reels)
         s3 = random.choice(reels)
 
         if s1 == s2 == s3:
-            multiplier = 5 if s1 != "7️⃣" else 10
+            multiplier = 5 if s1 != "7" else 10
             win_amount = bet * multiplier
             await db.execute("UPDATE user_economy SET wallet = wallet + ? WHERE guild_id = ? AND user_id = ?", win_amount, ctx.guild.id, ctx.author.id)
             embed = ZenithEmbed(
-                title="🎰 JACKPOT WINNER!",
-                description=f"**[ {s1} | {s2} | {s3} ]**\n\nIncredible! You hit the match and won 🪙 **${win_amount:,}** ({multiplier}x)!",
+                title="Slots: Triple Match",
+                description=f"**[ {s1} | {s2} | {s3} ]**\n\nFull match. Won **${win_amount:,}** ({multiplier}x).",
                 color=Color.SUCCESS
             )
         elif s1 == s2 or s2 == s3 or s1 == s3:
             win_amount = int(bet * 1.5)
             await db.execute("UPDATE user_economy SET wallet = wallet + ? WHERE guild_id = ? AND user_id = ?", win_amount - bet, ctx.guild.id, ctx.author.id)
             embed = ZenithEmbed(
-                title="🎰 Slots Partial Match",
-                description=f"**[ {s1} | {s2} | {s3} ]**\n\nNice pair! You won 🪙 **${win_amount:,}** (1.5x)!",
+                title="Slots: Pair Match",
+                description=f"**[ {s1} | {s2} | {s3} ]**\n\nPair match. Won **${win_amount:,}** (1.5x).",
                 color=Color.PRIMARY
             )
         else:
             await db.execute("UPDATE user_economy SET wallet = wallet - ? WHERE guild_id = ? AND user_id = ?", bet, ctx.guild.id, ctx.author.id)
             embed = ZenithEmbed(
-                title="🎰 Slots Loss",
-                description=f"**[ {s1} | {s2} | {s3} ]**\n\nNo match. You lost 🪙 **${bet:,}**. Better luck next spin!",
+                title="Slots: No Match",
+                description=f"**[ {s1} | {s2} | {s3} ]**\n\nLost **${bet:,}**.",
                 color=Color.ERROR
             )
 
@@ -241,8 +237,7 @@ class Economy(commands.Cog):
 
         desc_lines = []
         for rank, row in enumerate(rows, start=1):
-            medal = "🥇" if rank == 1 else "🥈" if rank == 2 else "🥉" if rank == 3 else f"`#{rank}`"
-            desc_lines.append(f"{medal} <@{row['user_id']}> — 🪙 **${row['total']:,}**")
+            desc_lines.append(f"**#{rank}** <@{row['user_id']}> - **${row['total']:,}**")
 
         embed = ZenithEmbed(
             title=f"Wealth Leaderboard — {ctx.guild.name}",

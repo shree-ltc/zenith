@@ -1,8 +1,5 @@
 """
-cogs/tickets.py - Professional Support Ticket Infrastructure for Zenith
-
-Provides button-driven ticket generation, private channel permission management,
-staff claim mechanisms, and automated transcript delivery.
+Support ticket system with persistent buttons and transcript export.
 """
 
 import io
@@ -26,7 +23,7 @@ class TicketControlView(ui.View):
         super().__init__(timeout=None)
         self.bot = bot
 
-    @ui.button(label="Close Ticket", style=discord.ButtonStyle.danger, emoji="🔒", custom_id="zenith:ticket:close")
+    @ui.button(label="Close Ticket", style=discord.ButtonStyle.danger, custom_id="zenith:ticket:close")
     async def close_ticket(self, interaction: discord.Interaction, button: ui.Button):
         """Initiates ticket closure with confirmation."""
         confirm_view = ConfirmView(interaction.user.id, timeout=30.0)
@@ -74,7 +71,7 @@ class TicketControlView(ui.View):
             await db.execute("DELETE FROM active_tickets WHERE ticket_channel_id = ?", interaction.channel_id)
             await interaction.channel.delete(reason=f"Zenith Ticket Closed by {interaction.user}")
 
-    @ui.button(label="Claim Ticket", style=discord.ButtonStyle.success, emoji="🙋", custom_id="zenith:ticket:claim")
+    @ui.button(label="Claim Ticket", style=discord.ButtonStyle.success, custom_id="zenith:ticket:claim")
     async def claim_ticket(self, interaction: discord.Interaction, button: ui.Button):
         """Assigns the ticket exclusively to the responding staff member."""
         if not interaction.user.guild_permissions.manage_channels:
@@ -103,7 +100,7 @@ class TicketLauncherView(ui.View):
         super().__init__(timeout=None)
         self.bot = bot
 
-    @ui.button(label="Create Ticket", style=discord.ButtonStyle.primary, emoji="🎫", custom_id="zenith:ticket:create")
+    @ui.button(label="Create Ticket", style=discord.ButtonStyle.primary, custom_id="zenith:ticket:create")
     async def create_ticket_button(self, interaction: discord.Interaction, button: ui.Button):
         """Instantiates a private channel for the user."""
         guild = interaction.guild

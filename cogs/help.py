@@ -1,8 +1,5 @@
 """
-cogs/help.py - Interactive Categorized Help System for Zenith
-
-Provides an intuitive UI featuring a category dropdown select menu,
-detailed command syntax, aliases, and permission requirements.
+Interactive help command displaying categories in a select menu.
 """
 
 from typing import Optional
@@ -15,8 +12,6 @@ from ui.colors import Color
 
 
 class HelpSelect(ui.Select):
-    """Dropdown menu for browsing command categories."""
-
     def __init__(self, cog: "Help", ctx: commands.Context):
         self.help_cog = cog
         self.ctx = ctx
@@ -24,62 +19,62 @@ class HelpSelect(ui.Select):
         options = [
             discord.SelectOption(
                 label="Home",
-                description="Overview of Zenith and quick navigation",
-                emoji="🏠",
+                description="Overview and quick navigation",
                 value="home"
             ),
             discord.SelectOption(
-                label="Security & Antinuke",
-                description="Raid prevention, anti-ban, anti-bot, quarantine",
-                emoji="🛡️",
+                label="Security",
+                description="Antinuke, whitelist, and raid prevention",
                 value="Antinuke"
             ),
             discord.SelectOption(
                 label="Automod",
-                description="Real-time spam, link, invite, and caps filtering",
-                emoji="⚙️",
+                description="Spam, links, invites, and caps filtering",
                 value="Automod"
             ),
             discord.SelectOption(
                 label="Moderation",
-                description="Bans, timeouts, kicks, warnings, purge, and role tools",
-                emoji="🔨",
+                description="Bans, timeouts, kicks, warnings, and purges",
                 value="Moderation"
             ),
             discord.SelectOption(
                 label="Tickets",
-                description="Interactive support ticket panels & transcripts",
-                emoji="🎫",
+                description="Support ticket panels and transcripts",
                 value="Tickets"
             ),
             discord.SelectOption(
-                label="Utility & Server Info",
-                description="User, server, avatar, role lookups and snipe tools",
-                emoji="📊",
-                value="Utility"
+                label="Server Management",
+                description="Nuke, lockdown, dehoist, and role inspection",
+                value="Server"
             ),
             discord.SelectOption(
-                label="Voice & TempVC",
-                description="Join-to-create voice channels with custom controls",
-                emoji="🔊",
+                label="Voice",
+                description="Join-to-create temporary voice channels",
                 value="Voice"
             ),
             discord.SelectOption(
-                label="Welcome & Autorole",
-                description="Automated greetings, welcome cards, and join roles",
-                emoji="👋",
+                label="Economy",
+                description="Currency, banking, shifts, and leaderboard",
+                value="Economy"
+            ),
+            discord.SelectOption(
+                label="Utility",
+                description="Server, member, avatar, and system lookups",
+                value="Utility"
+            ),
+            discord.SelectOption(
+                label="Welcome",
+                description="Member greetings and join autoroles",
                 value="Welcome"
             ),
             discord.SelectOption(
                 label="Giveaways",
-                description="Interactive giveaways with countdowns and rerolls",
-                emoji="🎉",
+                description="Community prize drawings",
                 value="Giveaways"
             ),
             discord.SelectOption(
-                label="Fun & Games",
-                description="Trivia, 8ball, coinflips, rock-paper-scissors",
-                emoji="🎲",
+                label="Fun",
+                description="Mini-games, coinflips, and trivia",
                 value="Fun"
             ),
         ]
@@ -104,32 +99,26 @@ class HelpSelect(ui.Select):
             embed = self.help_cog.get_home_embed(self.ctx)
             return await interaction.response.edit_message(embed=embed, view=self.view)
 
-        # Retrieve commands belonging to selected Cog
         target_cog = self.help_cog.bot.get_cog(selected)
         if not target_cog:
             embed = ZenithEmbed.error("Category Not Found", "No commands registered in this category.")
             return await interaction.response.edit_message(embed=embed, view=self.view)
 
-        # Collect unique command names
-        cmds = [
-            c for c in target_cog.get_commands() 
-            if not c.hidden
-        ]
+        cmds = [c for c in target_cog.get_commands() if not c.hidden]
 
         embed = ZenithEmbed(
             title=f"{selected} Commands",
-            description=f"Showing all commands registered under **{selected}**.\n"
-                        f"Use `{self.ctx.prefix}help <command>` for detailed syntax and flags.\n\n",
+            description=f"Commands registered under **{selected}**.\n"
+                        f"Use `{self.ctx.prefix}help <command>` for syntax and flags.\n\n",
             color=Color.PRIMARY
         )
 
         for cmd in cmds:
             name = f"{self.ctx.prefix}{cmd.qualified_name}"
             desc = cmd.help or cmd.brief or "No description provided."
-            # Show subcommands if it's a command group
             if isinstance(cmd, commands.Group) and cmd.commands:
                 sub_names = ", ".join(f"`{sub.name}`" for sub in cmd.commands if not sub.hidden)
-                desc = f"{desc}\n*Subcommands:* {sub_names}"
+                desc = f"{desc}\nSubcommands: {sub_names}"
 
             embed.add_field(name=f"`{name}`", value=desc, inline=False)
 
@@ -137,8 +126,6 @@ class HelpSelect(ui.Select):
 
 
 class HelpView(ui.View):
-    """View container carrying the HelpSelect dropdown menu."""
-
     def __init__(self, cog: "Help", ctx: commands.Context):
         super().__init__(timeout=180.0)
         self.add_item(HelpSelect(cog, ctx))
@@ -147,49 +134,39 @@ class HelpView(ui.View):
     async def on_timeout(self) -> None:
         for child in self.children:
             child.disabled = True
-        try:
-            # We don't hold the original message reference directly, so quietly pass
-            pass
-        except Exception:
-            pass
 
 
 class Help(commands.Cog):
-    """Custom categorized interactive help manual."""
-
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
     def get_home_embed(self, ctx: commands.Context) -> discord.Embed:
-        """Constructs the welcoming front page of the help manual."""
         total_commands = len([c for c in self.bot.commands if not c.hidden])
 
         embed = ZenithEmbed(
             title="Zenith — Command Directory",
             description=(
-                "Welcome to **Zenith**, a production-grade Discord security, moderation, "
-                "and server automation system.\n\n"
-                f"• **Current Prefix:** `{ctx.prefix}`\n"
-                f"• **Available Commands:** `{total_commands}+ active`\n"
-                "• **Navigation:** Select a category from the dropdown below to explore modules.\n"
-                "• **Detailed Query:** Run `z!help <command>` for usage examples & arguments."
+                f"Prefix: `{ctx.prefix}`\n"
+                f"Total Commands: `{total_commands}+`\n"
+                "Select a category from the dropdown below to explore modules.\n"
+                f"Run `{ctx.prefix}help <command>` for detailed arguments."
             ),
             color=Color.PRIMARY
         )
 
         embed.add_field(
-            name="🛡️ Protection & Governance",
+            name="Protection & Governance",
             value="`Antinuke`, `Automod`, `Moderation`, `Server Logs`",
             inline=False
         )
         embed.add_field(
-            name="⚙️ Automation & Infrastructure",
-            value="`Tickets`, `TempVC`, `Welcome`, `Autorole`, `Giveaways`",
+            name="Automation & Tools",
+            value="`Tickets`, `TempVC`, `Welcome`, `Autorole`, `Server`, `Giveaways`",
             inline=False
         )
         embed.add_field(
-            name="📊 Information & Engagement",
-            value="`Utility`, `Fun & Games`, `AFK System`",
+            name="Economy & Engagement",
+            value="`Economy`, `Utility`, `Fun`, `AFK`",
             inline=False
         )
 
@@ -198,33 +175,29 @@ class Help(commands.Cog):
 
     @commands.command(name="help", aliases=["commands", "cmds", "h"])
     async def help_command(self, ctx: commands.Context, *, command_query: Optional[str] = None):
-        """Displays the interactive command manual or inspects a specific command."""
+        """Displays command directory or inspects a specific command."""
         if not command_query:
             embed = self.get_home_embed(ctx)
             view = HelpView(self, ctx)
             return await ctx.reply(embed=embed, view=view, mention_author=False)
 
-        # Lookup specific command
         cmd = self.bot.get_command(command_query)
         if not cmd:
             embed = ZenithEmbed.error(
                 "Command Not Found",
-                f"No command named `{command_query}` exists in Zenith's registry."
+                f"No command named `{command_query}` exists."
             )
             return await ctx.reply(embed=embed, mention_author=False)
 
-        # Detailed single-command view
         embed = ZenithEmbed(
             title=f"Command: {ctx.prefix}{cmd.qualified_name}",
             description=cmd.help or "No detailed description provided.",
             color=Color.PRIMARY
         )
 
-        # Usage signature
         usage = f"`{ctx.prefix}{cmd.qualified_name} {cmd.signature}`".strip()
         embed.add_field(name="Syntax", value=usage, inline=False)
 
-        # Aliases
         if cmd.aliases:
             embed.add_field(
                 name="Aliases",
@@ -232,18 +205,16 @@ class Help(commands.Cog):
                 inline=True
             )
 
-        # Cooldown info
         if cmd._buckets and cmd._buckets._cooldown:
             embed.add_field(
                 name="Cooldown",
-                value=f"{cmd._buckets._cooldown.per:.0f} seconds",
+                value=f"{cmd._buckets._cooldown.per:.0f}s",
                 inline=True
             )
 
-        # Subcommands if group
         if isinstance(cmd, commands.Group) and cmd.commands:
             sub_list = "\n".join(
-                f"• `{ctx.prefix}{cmd.qualified_name} {sub.name}` — {sub.help or 'No info'}"
+                f"`{ctx.prefix}{cmd.qualified_name} {sub.name}` - {sub.help or 'No info'}"
                 for sub in cmd.commands if not sub.hidden
             )
             embed.add_field(name="Subcommands", value=sub_list, inline=False)

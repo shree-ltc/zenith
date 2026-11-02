@@ -1,8 +1,5 @@
 """
-cogs/logs.py - Multi-Channel Audit & Event Logging Engine for Zenith
-
-Dispatches real-time forensic logs for deleted/edited messages, member joins/leaves,
-role changes, nickname updates, and channel modifications.
+Event logging for message deletes, edits, and member departures.
 """
 
 from datetime import datetime, timezone
@@ -45,7 +42,7 @@ class Logs(commands.Cog):
             return
 
         embed = ZenithEmbed(
-            title="🗑️ Message Deleted",
+            title="Message Deleted",
             color=Color.ERROR,
             timestamp=datetime.now(timezone.utc)
         )
@@ -74,7 +71,7 @@ class Logs(commands.Cog):
             return
 
         embed = ZenithEmbed(
-            title="✏️ Message Edited",
+            title="Message Edited",
             color=Color.WARNING,
             timestamp=datetime.now(timezone.utc)
         )
@@ -101,7 +98,7 @@ class Logs(commands.Cog):
             return
 
         embed = ZenithEmbed(
-            title="📤 Member Left",
+            title="Member Left",
             color=Color.MUTED,
             timestamp=datetime.now(timezone.utc)
         )

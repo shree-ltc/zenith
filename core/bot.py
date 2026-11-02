@@ -1,8 +1,6 @@
 """
-core/bot.py - Core Engine for Zenith Bot
-
-Implements custom AutoShardedBot with dynamic prefixes, automated cog loading,
-asynchronous connection lifecycle management, and application command trees.
+Core bot class for Zenith.
+Handles extension discovery, prefixes, and gateway events.
 """
 
 import time

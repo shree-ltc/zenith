@@ -1,8 +1,6 @@
 """
-cogs/moderation.py - Professional Server Moderation & Governance Engine for Zenith
-
-Provides extensive moderation controls: bans, softbans, timeouts, warnings, channel locks,
-comprehensive multi-filter purges, and bulk role automation with strict hierarchy checks.
+Server moderation suite.
+Includes bans, kicks, timeouts, warnings, channel locks, purges, and role tools.
 """
 
 import re
