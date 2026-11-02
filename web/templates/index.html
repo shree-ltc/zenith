@@ -12,9 +12,11 @@
 </head>
 <body>
 
-  <!-- Ambient Radial Background Glows -->
-  <div class="ambient-glow-top"></div>
-  <div class="ambient-glow-side"></div>
+  <!-- Fixed Ambient Radial Background Glows (Zero Overflow) -->
+  <div class="ambient-background-wrapper">
+    <div class="ambient-glow-top"></div>
+    <div class="ambient-glow-side"></div>
+  </div>
 
   <!-- Navigation Bar -->
   <nav class="navbar">
@@ -193,18 +195,20 @@
         <div class="cat-pill" onclick="filterCommands('music', this)">Audio &amp; Lavalink</div>
       </div>
 
-      <table class="cmd-table">
-        <thead>
-          <tr>
-            <th style="width: 28%;">Primary Trigger</th>
-            <th style="width: 22%;">Permission Level</th>
-            <th style="width: 50%;">Description</th>
-          </tr>
-        </thead>
-        <tbody id="commandTableBody">
-          <!-- Populated by JavaScript -->
-        </tbody>
-      </table>
+      <div class="table-responsive">
+        <table class="cmd-table">
+          <thead>
+            <tr>
+              <th style="width: 28%;">Primary Trigger</th>
+              <th style="width: 22%;">Permission Level</th>
+              <th style="width: 50%;">Description</th>
+            </tr>
+          </thead>
+          <tbody id="commandTableBody">
+            <!-- Populated by JavaScript -->
+          </tbody>
+        </table>
+      </div>
     </div>
   </section>
 

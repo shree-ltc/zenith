@@ -1,44 +1,116 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0E0E12" />
-      <stop offset="100%" stop-color="#050507" />
-    </linearGradient>
-    <linearGradient id="zGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <!-- Deep Obsidian Radial Canvas -->
+    <radialGradient id="bgGrad" cx="50%" cy="42%" r="75%">
+      <stop offset="0%" stop-color="#11121A" />
+      <stop offset="55%" stop-color="#08080C" />
+      <stop offset="100%" stop-color="#040406" />
+    </radialGradient>
+
+    <!-- Chrome & Titanium Platinum Gradient for Upper Shards -->
+    <linearGradient id="bladeChrome" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#FFFFFF" />
-      <stop offset="60%" stop-color="#E2E4E9" />
-      <stop offset="100%" stop-color="#9BA1B0" />
+      <stop offset="30%" stop-color="#EFF1F7" />
+      <stop offset="70%" stop-color="#CBD1DF" />
+      <stop offset="100%" stop-color="#8A90A2" />
     </linearGradient>
+
+    <!-- Metallic Shadow Gradient for Lower Shards -->
+    <linearGradient id="bladeShadow" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="40%" stop-color="#D0D5E3" />
+      <stop offset="85%" stop-color="#858B9E" />
+      <stop offset="100%" stop-color="#555A6C" />
+    </linearGradient>
+
+    <!-- Cyberpunk Blurple Accent Glow -->
+    <linearGradient id="cyberAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5865F2" />
+      <stop offset="100%" stop-color="#404EED" />
+    </linearGradient>
+
+    <!-- Blade Edge Glow -->
     <filter id="subtleGlow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feGaussianBlur stdDeviation="7" result="blur" />
       <feComposite in="SourceGraphic" in2="blur" operator="over" />
     </filter>
   </defs>
 
-  <!-- Dark Obsidian Canvas -->
-  <rect width="512" height="512" rx="108" fill="url(#bg)" />
-  <rect width="510" height="510" x="1" y="1" rx="107" fill="none" stroke="#22232B" stroke-width="2" />
+  <!-- Dark Obsidian Base with Beveled Corner Radius -->
+  <rect width="512" height="512" rx="116" fill="url(#bgGrad)" />
+  <rect width="510" height="510" x="1" y="1" rx="115" fill="none" stroke="#222433" stroke-width="2" />
+  <rect width="474" height="474" x="19" y="19" rx="98" fill="none" stroke="#13141E" stroke-width="1.5" />
 
-  <!-- Inner Subtle Hairline Ring -->
-  <rect width="472" height="472" x="20" y="20" rx="90" fill="none" stroke="#16171E" stroke-width="1.5" />
+  <!-- Nano Technical Corner Geometry -->
+  <path d="M 44 74 L 44 44 L 74 44" fill="none" stroke="#2B2F44" stroke-width="2.5" stroke-linecap="round" />
+  <path d="M 468 74 L 468 44 L 438 44" fill="none" stroke="#2B2F44" stroke-width="2.5" stroke-linecap="round" />
+  <path d="M 44 438 L 44 468 L 74 468" fill="none" stroke="#2B2F44" stroke-width="2.5" stroke-linecap="round" />
+  <path d="M 468 438 L 468 468 L 438 468" fill="none" stroke="#2B2F44" stroke-width="2.5" stroke-linecap="round" />
 
-  <!-- Nano Minimalist Geometric 'Z' Mark -->
+  <!-- Precision Sliced Cyber 'Z' Glyph -->
   <g filter="url(#subtleGlow)">
+
+    <!-- ================= 01. UPPER BLADE (Top Bar with Cyber Angle & Slit) ================= -->
     <path d="
-      M 132 144
-      L 380 144
-      L 380 196
-      L 230 316
-      L 380 316
-      L 380 368
-      L 132 368
-      L 132 316
-      L 282 196
-      L 132 196
+      M 112 128
+      H 348
+      L 396 176
+      L 374 186
+      L 340 186
+      L 296 186
+      L 156 186
+      L 112 128
       Z
-    " fill="url(#zGrad)" />
+    " fill="url(#bladeChrome)" />
+
+    <!-- Top Right Detached Cyber Wing Shard -->
+    <polygon points="368,128 400,128 400,160 376,136" fill="url(#cyberAccent)" />
+
+    <!-- Top Blade Razor Slit Cut -->
+    <line x1="332" y1="124" x2="310" y2="190" stroke="#08080C" stroke-width="8" stroke-linecap="round" />
+
+    <!-- ================= 02. CENTRAL DYNAMIC DIAGONAL (Dual Sliced Bolts) ================= -->
+    <!-- Primary Diagonal Spine Blade -->
+    <path d="
+      M 374 198
+      L 398 226
+      L 204 366
+      L 156 366
+      L 138 340
+      L 326 198
+      Z
+    " fill="url(#bladeChrome)" />
+
+    <!-- Precision Negative Space Laser Cut Dividing Diagonal -->
+    <line x1="334" y1="216" x2="214" y2="336" stroke="#08080C" stroke-width="10" stroke-linecap="round" />
+
+    <!-- Secondary Angled Shard (Paralleling Diagonal) -->
+    <polygon points="340,256 376,292 344,316 320,292" fill="url(#cyberAccent)" opacity="0.85" />
+
+    <!-- ================= 03. LOWER BLADE (Bottom Bar with Cyber Angle & Slit) ================= -->
+    <path d="
+      M 400 384
+      H 164
+      L 116 336
+      L 138 326
+      L 172 326
+      L 216 326
+      L 356 326
+      L 400 384
+      Z
+    " fill="url(#bladeShadow)" />
+
+    <!-- Bottom Left Detached Cyber Wing Shard -->
+    <polygon points="144,384 112,384 112,352 136,376" fill="url(#cyberAccent)" />
+
+    <!-- Bottom Blade Razor Slit Cut -->
+    <line x1="180" y1="388" x2="202" y2="322" stroke="#08080C" stroke-width="8" stroke-linecap="round" />
+
   </g>
 
-  <!-- Minimalist Status Dot -->
-  <circle cx="380" cy="144" r="5" fill="#5865F2" />
+  <!-- Technical Telemetry Nano Accents -->
+  <circle cx="400" cy="128" r="3.5" fill="#5865F2" />
+  <circle cx="112" cy="384" r="3.5" fill="#5865F2" />
+  <line x1="116" y1="256" x2="132" y2="256" stroke="#2F3348" stroke-width="2" />
+  <line x1="380" y1="256" x2="396" y2="256" stroke="#2F3348" stroke-width="2" />
 </svg>

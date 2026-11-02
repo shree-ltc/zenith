@@ -33,38 +33,33 @@
     .chip:hover { border-color: rgba(255, 255, 255, 0.2); }
     .chip-remove { cursor: pointer; color: var(--accent-red); font-weight: 700; padding: 0 0.2rem; }
     .chip-remove:hover { color: #FF7B7D; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
-    @media (max-width: 960px) {
-      .dashboard-container { flex-direction: column; }
-      .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--glass-border); }
-      .grid-2, .grid-3 { grid-template-columns: 1fr; }
-    }
   </style>
 </head>
 <body>
 
-  <!-- Ambient Radial Glows -->
-  <div class="ambient-glow-top"></div>
+  <!-- Fixed Ambient Radial Background Glows (Zero Overflow) -->
+  <div class="ambient-background-wrapper">
+    <div class="ambient-glow-top"></div>
+  </div>
 
   <!-- Top Navigation Header -->
   <header class="navbar">
-    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+    <div class="navbar-inner">
       <div class="brand">
         <a href="/" style="display: flex; align-items: center; gap: 0.85rem;">
           <img src="/static/logo.svg" alt="Zenith Logo" class="brand-logo">
           <span class="brand-name">Zenith</span>
         </a>
-        <span class="brand-badge">CONTROL PLANE</span>
+        <span class="brand-badge hide-mobile">CONTROL PLANE</span>
       </div>
 
       <div class="nav-links">
-        <div class="status-pill">
+        <div class="status-pill hide-mobile">
           <span class="status-indicator"></span>
           <span id="gatewayStatus">GATEWAY LIVE • <span id="pingCounter">--</span>ms</span>
         </div>
-        <a href="/" class="btn btn-secondary">Website Home</a>
-        <a href="https://github.com/shree-ltc/zenith" target="_blank" class="btn btn-secondary">GitHub</a>
+        <a href="/" class="btn btn-secondary btn-sm">Home</a>
+        <a href="https://github.com/shree-ltc/zenith" target="_blank" class="btn btn-secondary btn-sm hide-mobile">GitHub</a>
       </div>
     </div>
   </header>
@@ -132,7 +127,7 @@
           <button class="btn btn-secondary" onclick="reloadGuildData()">Refresh Telemetry</button>
         </div>
 
-        <div class="stats-strip" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 2rem;">
+        <div class="stats-strip stats-strip-4">
           <div class="stat-card">
             <div class="stat-value" id="ovMemberCount">--</div>
             <div class="stat-label">Total Members</div>
