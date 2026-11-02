@@ -734,6 +734,18 @@ class Database:
             except Exception as e:
                 error(f"Error executing schema DDL: {e}", "database")
 
+        # Dynamic schema migrations for existing Postgres tables
+        if self.is_postgres:
+            migrations = [
+                "ALTER TABLE autoroles ADD COLUMN IF NOT EXISTS role_type VARCHAR(20) DEFAULT 'humans';",
+                "ALTER TABLE antinuke_config ADD COLUMN IF NOT EXISTS anti_prune BOOLEAN DEFAULT TRUE;"
+            ]
+            for m in migrations:
+                try:
+                    await self.execute(m)
+                except Exception:
+                    pass
+
     async def execute(self, query: str, *args) -> None:
         """Executes an INSERT, UPDATE, or DELETE query."""
         if self.is_postgres and self.pg_pool:

@@ -15,7 +15,7 @@ load_dotenv(dotenv_path=ENV_PATH, override=True)
 @dataclass(frozen=True)
 class Config:
     # Bot credentials
-    TOKEN: str = os.getenv("BOT_TOKEN", "")
+    TOKEN: str = os.getenv("BOT_TOKEN", os.getenv("DISCORD_TOKEN", ""))
     DEFAULT_PREFIX: str = os.getenv("BOT_PREFIX", "z!")
     BOT_NAME: str = "Zenith"
     AUTHOR: str = "Shree"

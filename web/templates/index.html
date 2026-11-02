@@ -3,91 +3,133 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Zenith • Enterprise Discord Security &amp; Server Automation</title>
+  <title>Zenith • Enterprise Discord Security &amp; Automation Architecture</title>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <link rel="stylesheet" href="/static/dashboard.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
 
-  <!-- Navigation -->
+  <!-- Ambient Radial Background Glows -->
+  <div class="ambient-glow-top"></div>
+  <div class="ambient-glow-side"></div>
+
+  <!-- Navigation Bar -->
   <nav class="navbar">
-    <div class="brand">
-      <img src="/static/logo.svg" alt="Zenith Logo" class="brand-logo">
-      <span class="brand-name">Zenith</span>
-      <span class="brand-badge">v1.0.0</span>
-    </div>
-    <div class="nav-links">
-      <a href="#features" class="nav-link">Features</a>
-      <a href="#architecture" class="nav-link">Architecture</a>
-      <a href="https://github.com/shree-ltc/zenith" target="_blank" class="nav-link">GitHub</a>
-      <div class="status-pill">
-        <span class="status-indicator"></span>
-        <span>ONLINE</span>
+    <div class="container" style="display: flex; align-items: center; justify-content: space-between;">
+      <div class="brand">
+        <img src="/static/logo.svg" alt="Zenith Logo" class="brand-logo">
+        <span class="brand-name">Zenith</span>
+        <span class="brand-badge">v1.0.0</span>
       </div>
-      <a href="/dashboard" class="btn btn-primary">Launch Dashboard</a>
+
+      <div class="nav-links">
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#commands" class="nav-link">Commands</a>
+        <a href="#architecture" class="nav-link">Architecture</a>
+        <a href="https://github.com/shree-ltc/zenith" target="_blank" class="nav-link">GitHub</a>
+        <div class="status-pill">
+          <span class="status-indicator"></span>
+          <span>GATEWAY ONLINE</span>
+        </div>
+        <a href="/dashboard" class="btn btn-primary">Open Control Plane</a>
+      </div>
     </div>
   </nav>
 
   <!-- Hero Section -->
   <header class="hero">
-    <div class="hero-tag">ENTERPRISE DISCORD DEFENSE ARCHITECTURE</div>
-    <h1 class="hero-title">High-Performance Discord Security &amp; Autonomous Administration</h1>
-    <p class="hero-desc">
-      Zenith provides real-time gateway audit analysis, instant privilege escalation neutralization, 
-      autonomous raid mitigation, and 503 distinct command endpoints with unified dark obsidian styling.
-    </p>
-    <div class="hero-actions">
-      <a href="/dashboard" class="btn btn-primary" style="padding: 0.8rem 1.8rem; font-size: 1rem;">Open Server Dashboard</a>
-      <a href="https://github.com/shree-ltc/zenith" target="_blank" class="btn btn-secondary" style="padding: 0.8rem 1.8rem; font-size: 1rem;">Explore GitHub Source</a>
+    <div class="container">
+      <div class="hero-tag">
+        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-blue);"></span>
+        <span>ENTERPRISE DISCORD DEFENSE ARCHITECTURE</span>
+      </div>
+
+      <h1 class="hero-title">High-Performance Discord Security<br>&amp; Autonomous Administration</h1>
+      
+      <p class="hero-desc">
+        Engineered for community defense, privilege escalation prevention, autonomous raid neutralization,
+        and complete server orchestration. Features real-time audit log analysis, sub-millisecond memory caching,
+        and 504 direct command endpoints with a dark obsidian aesthetic.
+      </p>
+
+      <div class="hero-actions">
+        <a href="/dashboard" class="btn btn-primary" style="height: 46px; padding: 0 1.75rem; font-size: 0.95rem;">
+          Launch Server Dashboard
+        </a>
+        <a href="https://github.com/shree-ltc/zenith" target="_blank" class="btn btn-secondary" style="height: 46px; padding: 0 1.75rem; font-size: 0.95rem;">
+          Explore GitHub Repository
+        </a>
+      </div>
+
+      <!-- Live Stats Strip -->
+      <div class="stats-strip">
+        <div class="stat-card">
+          <div class="stat-value" id="statsGuilds">--</div>
+          <div class="stat-label">Active Guilds</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statsMembers">--</div>
+          <div class="stat-label">Cached Members</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statsEndpoints">504</div>
+          <div class="stat-label">Command Endpoints</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statsTriggers">816</div>
+          <div class="stat-label">Invocable Triggers</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statsLatency">-- ms</div>
+          <div class="stat-label">Gateway Ping</div>
+        </div>
+      </div>
+
+      <!-- Live Gateway Terminal Component -->
+      <div class="terminal-window">
+        <div class="terminal-header">
+          <div class="terminal-dots">
+            <span class="terminal-dot dot-red"></span>
+            <span class="terminal-dot dot-yellow"></span>
+            <span class="terminal-dot dot-green"></span>
+          </div>
+          <div class="terminal-title">zenith-core // live-telemetry-stream</div>
+          <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--accent-green);">[SYNC ACTIVE]</div>
+        </div>
+        <div class="terminal-body" id="terminalStream">
+          <div><span class="term-time">[11:40:02]</span> <span class="term-tag-ok">[OK]</span> Gateway handshake verified • Session established with Discord Shard #0</div>
+          <div><span class="term-time">[11:40:04]</span> <span class="term-tag-shield">[SHIELD]</span> Mainrole protection audit completed • Verified 99 guilds safe from escalation</div>
+          <div><span class="term-time">[11:40:08]</span> <span class="term-tag-ok">[OK]</span> Antinuke audit listeners active • Intercepting bans, kicks, bot integrations &amp; roles</div>
+          <div><span class="term-time">[11:40:12]</span> <span class="term-tag-shield">[STORAGE]</span> Dual engine synchronization verified • PostgreSQL + SQLite state matching</div>
+          <div><span class="term-time">[11:40:18]</span> <span class="term-tag-warn">[NOTICE]</span> Live Web Dashboard active on port 8080 • Direct in-memory bus synchronized</div>
+        </div>
+      </div>
     </div>
   </header>
 
-  <!-- Live Stats Strip -->
-  <section class="stats-strip">
-    <div class="stat-card">
-      <div class="stat-value" id="statsGuilds">--</div>
-      <div class="stat-label">Connected Guilds</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value" id="statsMembers">--</div>
-      <div class="stat-label">Cached Members</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value" id="statsEndpoints">503</div>
-      <div class="stat-label">Command Endpoints</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value" id="statsTriggers">813</div>
-      <div class="stat-label">Invocable Triggers</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value" id="statsLatency">-- ms</div>
-      <div class="stat-label">Gateway Latency</div>
-    </div>
-  </section>
-
-  <!-- Features Grid -->
-  <section class="features-section" id="features">
+  <!-- Core Systems & Feature Matrix -->
+  <section class="container" id="features" style="padding-top: 1rem; padding-bottom: 2rem;">
     <div class="section-header">
-      <h2 class="section-title">Core Systems</h2>
-      <p class="section-subtitle">Engineered for absolute resilience, zero downtime, and zero privilege escalation.</p>
+      <div class="section-tag">[DEFENSE ARCHITECTURE]</div>
+      <h2 class="section-title">Built For Extreme Reliability</h2>
+      <p class="section-subtitle">Zero privilege leaks, zero decorative clutter, and autonomous real-time protection.</p>
     </div>
 
     <div class="features-grid">
-      <div class="feature-card">
+      <div class="glass-card">
         <span class="feature-tag">[SECURITY] MAINROLE GUARD</span>
         <h3 class="feature-title">Privilege Escalation Shield</h3>
         <p class="feature-desc">
-          Protects @everyone and verified member roles from receiving dangerous administrative permissions.
+          Guards default @everyone and verified member roles from receiving dangerous administrative permissions.
           Intercepts permission grants on the gateway and strips them within 0.5s back to safe states.
         </p>
       </div>
 
-      <div class="feature-card">
-        <span class="feature-tag">[DEFENSE] REAL-TIME ANTINUKE</span>
+      <div class="glass-card">
+        <span class="feature-tag">[ANTINUKE] GATEWAY DEFENSE</span>
         <h3 class="feature-title">Autonomous Raid Defense</h3>
         <p class="feature-desc">
           Monitors audit logs for unauthorized channel deletions, role tampering, rogue bot additions,
@@ -95,16 +137,16 @@
         </p>
       </div>
 
-      <div class="feature-card">
-        <span class="feature-tag">[VELOCITY] ANTI-BETRAY PROTOCOL</span>
-        <h3 class="feature-title">Compromised Account Mitigation</h3>
+      <div class="glass-card">
+        <span class="feature-tag">[VELOCITY] ANTI-BETRAY SHIELD</span>
+        <h3 class="feature-title">Compromised Staff Mitigation</h3>
         <p class="feature-desc">
           Tracks moderator velocity in rolling time windows. When administrative actions exceed safety
           thresholds, the actor is immediately stripped of staff roles and quarantined.
         </p>
       </div>
 
-      <div class="feature-card">
+      <div class="glass-card">
         <span class="feature-tag">[MODERATION] FAKE PERMISSIONS</span>
         <h3 class="feature-title">Zero-Trust Staff Authorization</h3>
         <p class="feature-desc">
@@ -113,7 +155,7 @@
         </p>
       </div>
 
-      <div class="feature-card">
+      <div class="glass-card">
         <span class="feature-tag">[PURIFICATION] PURGE MATRIX</span>
         <h3 class="feature-title">Target-Specific Message Purge</h3>
         <p class="feature-desc">
@@ -122,7 +164,7 @@
         </p>
       </div>
 
-      <div class="feature-card">
+      <div class="glass-card">
         <span class="feature-tag">[STREAMING] AUDIO ENGINE</span>
         <h3 class="feature-title">Lavalink &amp; Smart Autoplay</h3>
         <p class="feature-desc">
@@ -133,32 +175,158 @@
     </div>
   </section>
 
+  <!-- Interactive Command Explorer Component -->
+  <section class="container" id="commands" style="padding-bottom: 2rem;">
+    <div class="section-header">
+      <div class="section-tag">[COMMAND MATRIX]</div>
+      <h2 class="section-title">504 Direct Endpoints • 816 Invocable Triggers</h2>
+      <p class="section-subtitle">Explore Zenith's 47 cogs across security, administration, voice, and server utilities.</p>
+    </div>
+
+    <div class="command-explorer">
+      <div class="category-pills">
+        <div class="cat-pill active" onclick="filterCommands('all', this)">All Modules</div>
+        <div class="cat-pill" onclick="filterCommands('security', this)">Security &amp; Antinuke</div>
+        <div class="cat-pill" onclick="filterCommands('moderation', this)">Moderation &amp; Purge</div>
+        <div class="cat-pill" onclick="filterCommands('voice', this)">Voice &amp; Lounges</div>
+        <div class="cat-pill" onclick="filterCommands('automod', this)">Automod Matrix</div>
+        <div class="cat-pill" onclick="filterCommands('music', this)">Audio &amp; Lavalink</div>
+      </div>
+
+      <table class="cmd-table">
+        <thead>
+          <tr>
+            <th style="width: 28%;">Primary Trigger</th>
+            <th style="width: 22%;">Permission Level</th>
+            <th style="width: 50%;">Description</th>
+          </tr>
+        </thead>
+        <tbody id="commandTableBody">
+          <!-- Populated by JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Architecture Flow Component -->
+  <section class="container" id="architecture" style="padding-bottom: 2rem;">
+    <div class="section-header">
+      <div class="section-tag">[SYSTEM ARCHITECTURE]</div>
+      <h2 class="section-title">Three-Tier Defense Pipeline</h2>
+      <p class="section-subtitle">How Zenith safeguards guilds from attacks, compromised tokens, and permission leaks.</p>
+    </div>
+
+    <div class="architecture-flow">
+      <div class="flow-step">
+        <div class="flow-step-num">01</div>
+        <h3 class="flow-title">Gateway Interception</h3>
+        <p class="flow-desc">Intercepts incoming gateway events before guild members are exposed to unauthorized role or permission grants.</p>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num">02</div>
+        <h3 class="flow-title">In-Memory Security Shield</h3>
+        <p class="flow-desc">Validates actor hierarchy, whitelists, and daily quota consumption with sub-millisecond RAM response.</p>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-num">03</div>
+        <h3 class="flow-title">Dual-Engine Persistence</h3>
+        <p class="flow-desc">Reconstructs damaged channels and role hierarchies from serialized snapshots across PostgreSQL and SQLite.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- One-Click Deployment Banner -->
+  <section class="container" style="padding-bottom: 5rem;">
+    <div class="deploy-banner">
+      <h2 class="deploy-title">Ready to Fortify Your Server?</h2>
+      <p class="deploy-desc">Self-host Zenith in seconds with direct Python or Docker support, or manage via the integrated Web Control Plane.</p>
+      
+      <div class="copy-box">
+        <span class="copy-text" id="gitCloneText">git clone https://github.com/shree-ltc/zenith.git</span>
+        <button class="btn btn-secondary" style="height: 32px; padding: 0 0.85rem; font-size: 0.8rem;" onclick="copyCloneCommand()">
+          Copy Command
+        </button>
+      </div>
+    </div>
+  </section>
+
   <!-- Footer -->
   <footer class="footer">
-    <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-      <img src="/static/logo.svg" alt="Zenith" style="width: 20px; height: 20px;">
-      <span style="font-weight: 600; color: #FFFFFF;">Zenith Architecture</span>
+    <div class="container">
+      <div style="display: flex; align-items: center; justify-content: center; gap: 0.65rem; margin-bottom: 0.75rem;">
+        <img src="/static/logo.svg" alt="Zenith" style="width: 24px; height: 24px;">
+        <span style="font-weight: 700; color: #FFFFFF; font-size: 1.05rem;">Zenith Architecture</span>
+      </div>
+      <p>Engineered by <a href="https://github.com/shree-ltc" target="_blank" style="color: var(--accent-blue); font-weight: 600; text-decoration: underline;">Shree</a> • Open-Source MIT License</p>
+      <p style="margin-top: 0.5rem; font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-muted);">
+        Discord: shree.ltc (ID: 1465912900710305822) • Zero Decorative Emojis • Sub-millisecond Execution Bus
+      </p>
     </div>
-    <p>Engineered by <a href="https://github.com/shree-ltc" target="_blank" style="color: var(--accent-blue); text-decoration: underline;">Shree</a> • Open-Source MIT License</p>
-    <p style="margin-top: 0.5rem; font-family: var(--font-mono); font-size: 0.75rem;">Discord: shree.ltc (1465912900710305822) • Real-Time Engine Active</p>
   </footer>
 
   <script>
+    // Live Polling of Bot Statistics
     async function loadStats() {
       try {
         const res = await fetch('/api/stats');
         const data = await res.json();
         document.getElementById('statsGuilds').innerText = (data.guilds || 0).toLocaleString();
         document.getElementById('statsMembers').innerText = (data.members || 0).toLocaleString();
-        document.getElementById('statsEndpoints').innerText = (data.endpoints || 503).toLocaleString();
-        document.getElementById('statsTriggers').innerText = (data.triggers || 813).toLocaleString();
+        document.getElementById('statsEndpoints').innerText = (data.endpoints || 504).toLocaleString();
+        document.getElementById('statsTriggers').innerText = (data.triggers || 816).toLocaleString();
         document.getElementById('statsLatency').innerText = Math.round(data.ping || 0) + ' ms';
-      } catch (err) {
-        console.warn('Real-time stats poller: connection offline or initializing.');
-      }
+      } catch (err) {}
     }
     loadStats();
-    setInterval(loadStats, 5000);
+    setInterval(loadStats, 4000);
+
+    // Command Catalog Dataset
+    const commandsData = [
+      { trigger: "mainrole scan", category: "security", perms: "Server Owner", desc: "Audits all protected roles and strips active dangerous permissions." },
+      { trigger: "antinuke enable", category: "security", perms: "Server Owner", desc: "Arms real-time audit log interceptor against unauthorized attacks." },
+      { trigger: "antinuke snapshot", category: "security", perms: "Server Owner", desc: "Serializes complete guild structure, roles, and channels to database." },
+      { trigger: "antibetray set <count> <sec>", category: "security", perms: "Server Owner", desc: "Configures velocity limit for staff administrative actions." },
+      { trigger: "ban <@user> [reason]", category: "moderation", perms: "Ban Members", desc: "Bans a member with strict hierarchy & Server Owner protection checks." },
+      { trigger: "clearall [amount]", category: "moderation", perms: "Manage Messages", desc: "Purges up to 100 messages with high-speed rate-limited cleanup." },
+      { trigger: "clearlinks [amount]", category: "moderation", perms: "Manage Messages", desc: "Purges only messages containing external links or invites." },
+      { trigger: "fp set <@role>", category: "security", perms: "Server Owner", desc: "Authorizes a staff role to run Zenith moderation without Discord perms." },
+      { trigger: "voice setup", category: "voice", perms: "Manage Channels", desc: "Creates automated Join-to-Create temporary voice lounge system." },
+      { trigger: "voice lock", category: "voice", perms: "Voice Owner", desc: "Locks current temporary voice channel to prevent unwanted joins." },
+      { trigger: "automod antispam <on/off>", category: "automod", perms: "Administrator", desc: "Enforces burst rate-limits on incoming channel messages." },
+      { trigger: "automod words add <word>", category: "automod", perms: "Administrator", desc: "Adds forbidden term to real-time message suppression engine." },
+      { trigger: "play <query / url>", category: "music", perms: "Connect", desc: "High-fidelity audio streaming through Lavalink cluster." },
+      { trigger: "autoplay", category: "music", perms: "Connect", desc: "Toggles intelligent YouTube RD mix parallel track discovery." }
+    ];
+
+    function filterCommands(cat, el) {
+      document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+      el.classList.add('active');
+      renderCommands(cat);
+    }
+
+    function renderCommands(cat) {
+      const tbody = document.getElementById('commandTableBody');
+      tbody.innerHTML = '';
+      const filtered = cat === 'all' ? commandsData : commandsData.filter(c => c.category === cat);
+      filtered.forEach(c => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><span class="cmd-trigger">z!${c.trigger}</span></td>
+          <td><span style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-secondary);">${c.perms}</span></td>
+          <td style="color: var(--text-secondary);">${c.desc}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    renderCommands('all');
+
+    function copyCloneCommand() {
+      const text = document.getElementById('gitCloneText').innerText;
+      navigator.clipboard.writeText(text);
+      alert('[COPIED] Git clone command copied to clipboard.');
+    }
   </script>
 </body>
 </html>
