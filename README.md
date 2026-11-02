@@ -35,6 +35,11 @@ Zenith is a modular, high-throughput Discord bot engine designed for community s
 * **Virtual Economy**: Balances, banking, work shifts, transfers, slot game, and server leaderboards.
 * **Server Administration**: Channel recreation (nuke), server-wide lockdowns, and bulk nickname dehoisting.
 
+### Audio & Streaming
+* **Lavalink Integration**: High-fidelity audio streaming with queue management, seek controls, volume scaling, and shuffle.
+* **Intelligent Autoplay**: Native YouTube RD mix integration and parallel artist queries. Automatically queues related tracks when the queue finishes, filtering out loops, compilations, and duplicate tracks.
+* **Interactive Player Controller**: Button controls for Play/Pause, Skip, Stop, Restart, Loop mode, Autoplay, and Queue.
+
 ### Architecture & Resilience
 * **Dual Database Engine**: High-performance PostgreSQL (`asyncpg`) with automatic fallback to local SQLite (`aiosqlite`).
 * **Caching Layer**: Redis support with in-memory TTL caching fallback.
@@ -113,6 +118,7 @@ zenith/
 │   ├── giveaways.py       # Prize drawings with button entry
 │   ├── afk.py             # Away status and mention notifications
 │   ├── fun.py             # RPS, 8ball, coinflips, and quotes
+│   ├── music.py           # Lavalink audio streaming and autoplay
 │   ├── owner.py           # Hot-reloads, slash syncing, and eval
 │   └── help.py            # Categorized help menu
 ├── requirements.txt
@@ -137,6 +143,7 @@ zenith/
 | **Server** | `nuke`, `lockdown`, `unlockdown`, `dehoist`, `inrole` | Guild maintenance and administrative actions. |
 | **Utility** | `userinfo`, `serverinfo`, `avatar`, `botinfo`, `ping`, `snipe` | Information lookup and diagnostics. |
 | **Giveaways** | `giveaway start <duration> <winners> <prize>` | Timed community prize drawings. |
+| **Music** | `play`, `skip`, `pause`, `resume`, `queue`, `autoplay`, `seek`, `volume` | Audio streaming with Lavalink and smart autoplay. |
 | **AFK** | `afk [reason]` | Notifies users who mention you while away. |
 | **Developer** | `reloadall`, `sync`, `eval`, `prefix` | Maintenance and hot-reloading. |
 

@@ -7,3 +7,4 @@ aiohttp>=3.9.3
 psutil>=5.9.8
 colorama>=0.4.6
 Pillow>=10.2.0
+lavalink>=5.11.0

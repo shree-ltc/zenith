@@ -73,6 +73,11 @@ class HelpSelect(ui.Select):
                 value="Giveaways"
             ),
             discord.SelectOption(
+                label="Music",
+                description="Audio streaming, queue, seek, and autoplay",
+                value="Music"
+            ),
+            discord.SelectOption(
                 label="Fun",
                 description="Mini-games, coinflips, and trivia",
                 value="Fun"
@@ -165,8 +170,8 @@ class Help(commands.Cog):
             inline=False
         )
         embed.add_field(
-            name="Economy & Engagement",
-            value="`Economy`, `Utility`, `Fun`, `AFK`",
+            name="Media & Engagement",
+            value="`Music`, `Economy`, `Utility`, `Fun`, `AFK`",
             inline=False
         )
 

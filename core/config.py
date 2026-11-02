@@ -36,6 +36,10 @@ class Config:
     REDIS_URL: str | None = os.getenv("REDIS_URL", None)
     SQLITE_PATH: Path = Path(__file__).resolve().parent.parent / "data" / "zenith.db"
 
+    # Lavalink audio node
+    LAVALINK_URI: str = os.getenv("LAVALINK_URI", "https://lava-v4.ajieblogs.eu.org:443")
+    LAVALINK_PASSWORD: str = os.getenv("LAVALINK_PASSWORD", "https://dsc.gg/ajidevserver")
+
     # Color scheme
     COLOR_PRIMARY: int = int(os.getenv("COLOR_PRIMARY", "5865F2"), 16)
     COLOR_SUCCESS: int = int(os.getenv("COLOR_SUCCESS", "57F287"), 16)
