@@ -14,6 +14,30 @@
 </head>
 <body>
 
+  <!-- Minimal Top Loading Progress Bar -->
+  <div id="zenith-top-loader" class="zenith-top-loader"></div>
+
+  <!-- Precision Cyber Preloader Boot Sequence -->
+  <div id="zenith-preloader" class="zenith-preloader" aria-hidden="true">
+    <div class="preloader-content">
+      <div class="preloader-logo-wrap">
+        <img src="/static/logo.svg" alt="Zenith" class="preloader-logo">
+        <div class="preloader-glow-ring"></div>
+      </div>
+      <div class="preloader-status">
+        <span class="preloader-dot"></span>
+        <span id="preloaderStatusText">INITIALIZING ENGINE</span>
+      </div>
+      <div class="preloader-bar-wrap">
+        <div id="preloaderProgressBar" class="preloader-bar"></div>
+      </div>
+      <div class="preloader-meta">
+        <span id="preloaderPhaseText">CONNECTING IPC GATEWAY</span>
+        <span id="preloaderPercentText">0%</span>
+      </div>
+    </div>
+  </div>
+
   <!-- Fixed Ambient Radial Background Glows (Strict Zero-Overflow Ground) -->
   <div class="ambient-background-wrapper" aria-hidden="true">
     <div class="ambient-glow-top"></div>
@@ -75,11 +99,11 @@
       <!-- Live Stats Strip (Staggered Entry 5 to 9) -->
       <div class="stats-strip">
         <div class="stat-card" data-enter style="--enter-i: 5;">
-          <div class="stat-value" id="statsGuilds">--</div>
+          <div class="stat-value" id="statsGuilds"><span class="skeleton-shimmer"></span></div>
           <div class="stat-label">Active Guilds</div>
         </div>
         <div class="stat-card" data-enter style="--enter-i: 6;">
-          <div class="stat-value" id="statsMembers">--</div>
+          <div class="stat-value" id="statsMembers"><span class="skeleton-shimmer" style="min-width: 65px;"></span></div>
           <div class="stat-label">Cached Members</div>
         </div>
         <div class="stat-card" data-enter style="--enter-i: 7;">
@@ -91,7 +115,7 @@
           <div class="stat-label">Invocable Triggers</div>
         </div>
         <div class="stat-card" data-enter style="--enter-i: 9;">
-          <div class="stat-value" id="statsLatency">-- ms</div>
+          <div class="stat-value" id="statsLatency"><span class="skeleton-shimmer" style="min-width: 44px;"></span></div>
           <div class="stat-label">Gateway Ping</div>
         </div>
       </div>
@@ -244,7 +268,7 @@
     function animateCounter(elementId, start, end, duration = 1000) {
       const el = document.getElementById(elementId);
       if (!el) return;
-      if (start === end && el.innerText !== '--') return;
+      if (start === end && !el.querySelector('.skeleton-shimmer') && el.innerText !== '--') return;
       
       let startTime = null;
       function step(timestamp) {
@@ -262,6 +286,77 @@
 
     loadStats();
     setInterval(loadStats, 4000);
+
+    // =========================================================================
+    // Precision Cyber Preloader Boot Sequence
+    // =========================================================================
+    (function initPreloader() {
+      const preloader = document.getElementById('zenith-preloader');
+      const bar = document.getElementById('preloaderProgressBar');
+      const percentText = document.getElementById('preloaderPercentText');
+      const statusText = document.getElementById('preloaderStatusText');
+      const phaseText = document.getElementById('preloaderPhaseText');
+      const topLoader = document.getElementById('zenith-top-loader');
+
+      if (!preloader || !bar) return;
+
+      if (topLoader) {
+        topLoader.classList.add('active');
+        topLoader.style.width = '30%';
+      }
+
+      const phases = [
+        { p: 25, phase: 'ESTABLISHING IPC GATEWAY', status: 'SYNCHRONIZING' },
+        { p: 58, phase: 'VERIFYING SECURITY MATRIX', status: 'AUDIT IN-MEMORY' },
+        { p: 85, phase: 'MOUNTING REACT RUNTIME', status: 'TELEMETRY LIVE' },
+        { p: 100, phase: 'ALL SYSTEMS NOMINAL', status: 'SYSTEM CORE READY' }
+      ];
+
+      let step = 0;
+      function advance() {
+        if (step >= phases.length) {
+          if (topLoader) {
+            topLoader.style.width = '100%';
+            setTimeout(() => {
+              topLoader.classList.remove('active');
+              topLoader.style.width = '0%';
+            }, 300);
+          }
+          setTimeout(() => {
+            preloader.classList.add('loaded');
+          }, 120);
+          return;
+        }
+
+        const item = phases[step];
+        bar.style.width = item.p + '%';
+        if (percentText) percentText.innerText = item.p + '%';
+        if (phaseText) phaseText.innerText = item.phase;
+        if (statusText) statusText.innerText = item.status;
+        if (topLoader) topLoader.style.width = item.p + '%';
+
+        step++;
+        const delays = [90, 140, 120, 80];
+        setTimeout(advance, delays[step - 1] || 100);
+      }
+
+      requestAnimationFrame(() => {
+        setTimeout(advance, 40);
+      });
+
+      // Top progress bar on navigation clicks
+      document.querySelectorAll('a[href^="/"]').forEach(link => {
+        link.addEventListener('click', () => {
+          const href = link.getAttribute('href');
+          if (href && !href.startsWith('#') && !link.hasAttribute('target')) {
+            if (topLoader) {
+              topLoader.classList.add('active');
+              topLoader.style.width = '65%';
+            }
+          }
+        });
+      });
+    })();
 
     // Emil Kowalski Cursor Spotlight Physics on Glass Cards
     document.querySelectorAll('.glass-card').forEach(card => {

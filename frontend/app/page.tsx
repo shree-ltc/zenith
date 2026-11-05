@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import PageLoader from '@/components/PageLoader';
 import CyberGridPulse from '@/components/CyberGridPulse';
 import SpotlightCard from '@/components/SpotlightCard';
 import InteractiveTerminal from '@/components/InteractiveTerminal';
@@ -10,6 +11,9 @@ import CommandMatrix from '@/components/CommandMatrix';
 export default function Home() {
   return (
     <main className="relative min-h-screen w-full bg-[#07070A] text-white">
+      {/* Precision Boot Loader & Top Loading Bar */}
+      <PageLoader />
+
       {/* Background Interactive Cyber Grid Canvas */}
       <div className="absolute inset-0 h-[640px] overflow-hidden pointer-events-none">
         <CyberGridPulse />

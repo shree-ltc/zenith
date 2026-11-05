@@ -14,6 +14,30 @@
 </head>
 <body>
 
+  <!-- Minimal Top Loading Progress Bar -->
+  <div id="zenith-top-loader" class="zenith-top-loader"></div>
+
+  <!-- Precision Cyber Preloader Boot Sequence -->
+  <div id="zenith-preloader" class="zenith-preloader" aria-hidden="true">
+    <div class="preloader-content">
+      <div class="preloader-logo-wrap">
+        <img src="/static/logo.svg" alt="Zenith" class="preloader-logo">
+        <div class="preloader-glow-ring"></div>
+      </div>
+      <div class="preloader-status">
+        <span class="preloader-dot"></span>
+        <span id="preloaderStatusText">INITIALIZING CONTROL PLANE</span>
+      </div>
+      <div class="preloader-bar-wrap">
+        <div id="preloaderProgressBar" class="preloader-bar"></div>
+      </div>
+      <div class="preloader-meta">
+        <span id="preloaderPhaseText">CONNECTING GUILD MATRIX</span>
+        <span id="preloaderPercentText">0%</span>
+      </div>
+    </div>
+  </div>
+
   <!-- Fixed Ambient Radial Background Glows (Zero Overflow) -->
   <div class="ambient-background-wrapper">
     <div class="ambient-glow-top"></div>
@@ -871,6 +895,75 @@
     function reloadGuildData() {
       if (activeGuildId) loadGuildDetails(activeGuildId);
     }
+
+    // Precision Cyber Preloader Boot Sequence
+    (function initPreloader() {
+      const preloader = document.getElementById('zenith-preloader');
+      const bar = document.getElementById('preloaderProgressBar');
+      const percentText = document.getElementById('preloaderPercentText');
+      const statusText = document.getElementById('preloaderStatusText');
+      const phaseText = document.getElementById('preloaderPhaseText');
+      const topLoader = document.getElementById('zenith-top-loader');
+
+      if (!preloader || !bar) return;
+
+      if (topLoader) {
+        topLoader.classList.add('active');
+        topLoader.style.width = '30%';
+      }
+
+      const phases = [
+        { p: 30, phase: 'FETCHING GUILD REPOSITORIES', status: 'SYNCHRONIZING' },
+        { p: 65, phase: 'INITIALIZING DEFENSE CONTROLS', status: 'AUDIT IN-MEMORY' },
+        { p: 90, phase: 'CALIBRATING SECURITY METRICS', status: 'DASHBOARD READY' },
+        { p: 100, phase: 'ALL MODULES OPERATIONAL', status: 'CONTROL PLANE ONLINE' }
+      ];
+
+      let step = 0;
+      function advance() {
+        if (step >= phases.length) {
+          if (topLoader) {
+            topLoader.style.width = '100%';
+            setTimeout(() => {
+              topLoader.classList.remove('active');
+              topLoader.style.width = '0%';
+            }, 300);
+          }
+          setTimeout(() => {
+            preloader.classList.add('loaded');
+          }, 120);
+          return;
+        }
+
+        const item = phases[step];
+        bar.style.width = item.p + '%';
+        if (percentText) percentText.innerText = item.p + '%';
+        if (phaseText) phaseText.innerText = item.phase;
+        if (statusText) statusText.innerText = item.status;
+        if (topLoader) topLoader.style.width = item.p + '%';
+
+        step++;
+        const delays = [80, 120, 100, 70];
+        setTimeout(advance, delays[step - 1] || 90);
+      }
+
+      requestAnimationFrame(() => {
+        setTimeout(advance, 30);
+      });
+
+      // Top progress bar on navigation clicks
+      document.querySelectorAll('a[href^="/"]').forEach(link => {
+        link.addEventListener('click', () => {
+          const href = link.getAttribute('href');
+          if (href && !href.startsWith('#') && !link.hasAttribute('target')) {
+            if (topLoader) {
+              topLoader.classList.add('active');
+              topLoader.style.width = '65%';
+            }
+          }
+        });
+      });
+    })();
 
     window.onload = () => {
       loadGuilds();
