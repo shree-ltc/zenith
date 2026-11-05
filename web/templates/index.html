@@ -43,9 +43,11 @@
     </div>
   </nav>
 
-  <!-- Hero Section -->
-  <header class="hero">
-    <div class="container">
+  <!-- Hero Section with Interactive Cyber Grid Pulse Canvas -->
+  <header class="hero" style="position: relative; overflow: hidden;">
+    <div id="react-cyber-canvas-root" style="position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 0;"></div>
+
+    <div class="container" style="position: relative; z-index: 1;">
       <div class="hero-tag" data-enter style="--enter-i: 1;">
         <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-blue);"></span>
         <span>ENTERPRISE DISCORD DEFENSE ARCHITECTURE</span>
@@ -94,29 +96,12 @@
         </div>
       </div>
 
-      <!-- Live Gateway Telemetry Terminal Component -->
-      <div class="terminal-window" data-enter style="--enter-i: 10;">
-        <div class="terminal-header">
-          <div class="terminal-dots">
-            <span class="terminal-dot dot-red"></span>
-            <span class="terminal-dot dot-yellow"></span>
-            <span class="terminal-dot dot-green"></span>
-          </div>
-          <div class="terminal-title">zenith-core // live-telemetry-stream</div>
-          <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--accent-green);">[SYNC ACTIVE]</div>
-        </div>
-        <div class="terminal-body" id="terminalStream">
-          <div><span class="term-time">[11:40:02]</span> <span class="term-tag-ok">[OK]</span> Gateway handshake verified • Session established with Discord Shard #0</div>
-          <div><span class="term-time">[11:40:04]</span> <span class="term-tag-shield">[SHIELD]</span> Mainrole protection audit completed • Verified 99 guilds safe from escalation</div>
-          <div><span class="term-time">[11:40:08]</span> <span class="term-tag-ok">[OK]</span> Antinuke audit listeners active • Intercepting bans, kicks, bot integrations &amp; roles</div>
-          <div><span class="term-time">[11:40:12]</span> <span class="term-tag-shield">[STORAGE]</span> Dual engine synchronization verified • PostgreSQL + SQLite state matching</div>
-          <div><span class="term-time">[11:40:18]</span> <span class="term-tag-warn">[NOTICE]</span> Live Web Dashboard active on port 8080 • Direct in-memory bus synchronized</div>
-        </div>
-      </div>
+      <!-- React Interactive Telemetry Terminal Component -->
+      <div id="react-terminal-root" data-enter style="--enter-i: 10;"></div>
     </div>
   </header>
 
-  <!-- Core Systems & Feature Matrix -->
+  <!-- Core Systems & Feature Matrix with Spotlight Cursor Glow Cards -->
   <section class="container" id="features" style="padding-top: 1rem; padding-bottom: 2rem;">
     <div class="section-header" data-enter style="--enter-i: 11;">
       <div class="section-tag">[DEFENSE ARCHITECTURE]</div>
@@ -125,7 +110,7 @@
     </div>
 
     <div class="features-grid">
-      <div class="glass-card" data-enter style="--enter-i: 12;">
+      <div class="glass-card spotlight-card" data-enter style="--enter-i: 12;">
         <span class="feature-tag">[SECURITY] MAINROLE GUARD</span>
         <h3 class="feature-title">Privilege Escalation Shield</h3>
         <p class="feature-desc">
@@ -134,7 +119,7 @@
         </p>
       </div>
 
-      <div class="glass-card" data-enter style="--enter-i: 13;">
+      <div class="glass-card spotlight-card" data-enter style="--enter-i: 13;">
         <span class="feature-tag">[ANTINUKE] GATEWAY DEFENSE</span>
         <h3 class="feature-title">Autonomous Raid Defense</h3>
         <p class="feature-desc">
@@ -143,7 +128,7 @@
         </p>
       </div>
 
-      <div class="glass-card" data-enter style="--enter-i: 14;">
+      <div class="glass-card spotlight-card" data-enter style="--enter-i: 14;">
         <span class="feature-tag">[VELOCITY] ANTI-BETRAY SHIELD</span>
         <h3 class="feature-title">Compromised Staff Mitigation</h3>
         <p class="feature-desc">
@@ -152,7 +137,7 @@
         </p>
       </div>
 
-      <div class="glass-card" data-enter style="--enter-i: 15;">
+      <div class="glass-card spotlight-card" data-enter style="--enter-i: 15;">
         <span class="feature-tag">[MODERATION] FAKE PERMISSIONS</span>
         <h3 class="feature-title">Zero-Trust Staff Authorization</h3>
         <p class="feature-desc">
@@ -161,7 +146,7 @@
         </p>
       </div>
 
-      <div class="glass-card" data-enter style="--enter-i: 16;">
+      <div class="glass-card spotlight-card" data-enter style="--enter-i: 16;">
         <span class="feature-tag">[PURIFICATION] PURGE MATRIX</span>
         <h3 class="feature-title">Target-Specific Message Purge</h3>
         <p class="feature-desc">
@@ -170,7 +155,7 @@
         </p>
       </div>
 
-      <div class="glass-card" data-enter style="--enter-i: 17;">
+      <div class="glass-card spotlight-card" data-enter style="--enter-i: 17;">
         <span class="feature-tag">[STREAMING] AUDIO ENGINE</span>
         <h3 class="feature-title">Lavalink &amp; Smart Autoplay</h3>
         <p class="feature-desc">
@@ -181,7 +166,7 @@
     </div>
   </section>
 
-  <!-- Interactive Command Explorer Component -->
+  <!-- React Interactive Command Explorer Component -->
   <section class="container" id="commands" style="padding-bottom: 2rem;">
     <div class="section-header" data-enter style="--enter-i: 18;">
       <div class="section-tag">[COMMAND MATRIX]</div>
@@ -189,60 +174,20 @@
       <p class="section-subtitle">Explore Zenith's 47 cogs across security, administration, voice, and server utilities.</p>
     </div>
 
-    <div class="command-explorer" data-enter style="--enter-i: 19;">
-      <div class="category-pills">
-        <button type="button" class="cat-pill active" onclick="filterCommands('all', this)">All Modules</button>
-        <button type="button" class="cat-pill" onclick="filterCommands('security', this)">Security &amp; Antinuke</button>
-        <button type="button" class="cat-pill" onclick="filterCommands('moderation', this)">Moderation &amp; Purge</button>
-        <button type="button" class="cat-pill" onclick="filterCommands('voice', this)">Voice &amp; Lounges</button>
-        <button type="button" class="cat-pill" onclick="filterCommands('automod', this)">Automod Matrix</button>
-        <button type="button" class="cat-pill" onclick="filterCommands('music', this)">Audio &amp; Lavalink</button>
-      </div>
-
-      <div class="table-responsive">
-        <table class="cmd-table">
-          <thead>
-            <tr>
-              <th style="width: 28%;">Primary Trigger</th>
-              <th style="width: 22%;">Permission Level</th>
-              <th style="width: 50%;">Description</th>
-            </tr>
-          </thead>
-          <tbody id="commandTableBody">
-            <!-- Populated by JavaScript -->
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <!-- React Command Explorer Mount Point -->
+    <div id="react-commands-root" data-enter style="--enter-i: 19;"></div>
   </section>
 
-  <!-- Architecture Flow Component -->
+  <!-- React Interactive Architecture Pipeline Flow Component -->
   <section class="container" id="architecture" style="padding-bottom: 2rem;">
     <div class="section-header" data-enter style="--enter-i: 20;">
       <div class="section-tag">[SYSTEM ARCHITECTURE]</div>
       <h2 class="section-title">Three-Tier Defense Pipeline</h2>
-      <p class="section-subtitle">How Zenith safeguards guilds from attacks, compromised tokens, and permission leaks.</p>
+      <p class="section-subtitle">Interactive diagnostic inspector across Zenith's gateway, memory, and database layers.</p>
     </div>
 
-    <div class="architecture-flow">
-      <div class="flow-step" data-enter style="--enter-i: 21;">
-        <div class="flow-step-num">01</div>
-        <h3 class="flow-title">Gateway Interception</h3>
-        <p class="flow-desc">Intercepts incoming gateway events before guild members are exposed to unauthorized role or permission grants.</p>
-      </div>
-
-      <div class="flow-step" data-enter style="--enter-i: 22;">
-        <div class="flow-step-num">02</div>
-        <h3 class="flow-title">In-Memory Security Shield</h3>
-        <p class="flow-desc">Validates actor hierarchy, whitelists, and daily quota consumption with sub-millisecond RAM response.</p>
-      </div>
-
-      <div class="flow-step" data-enter style="--enter-i: 23;">
-        <div class="flow-step-num">03</div>
-        <h3 class="flow-title">Dual-Engine Persistence</h3>
-        <p class="flow-desc">Reconstructs damaged channels and role hierarchies from serialized snapshots across PostgreSQL and SQLite.</p>
-      </div>
-    </div>
+    <!-- React Pipeline Mount Point -->
+    <div id="react-pipeline-root" data-enter style="--enter-i: 21;"></div>
   </section>
 
   <!-- One-Click Deployment Banner -->
@@ -274,61 +219,58 @@
     </div>
   </footer>
 
+  <!-- React 18 & Zenith Interactive Effect Components -->
+  <script src="/static/vendor/react.min.js"></script>
+  <script src="/static/vendor/react-dom.min.js"></script>
+  <script src="/static/js/react-components.js"></script>
+
   <script>
-    // Live Polling of Bot Statistics
+    // Live Polling of Bot Statistics with Smooth Digit Interpolation
+    let previousStats = {};
     async function loadStats() {
       try {
         const res = await fetch('/api/stats');
         const data = await res.json();
-        document.getElementById('statsGuilds').innerText = (data.guilds || 0).toLocaleString();
-        document.getElementById('statsMembers').innerText = (data.members || 0).toLocaleString();
-        document.getElementById('statsEndpoints').innerText = (data.endpoints || 504).toLocaleString();
-        document.getElementById('statsTriggers').innerText = (data.triggers || 816).toLocaleString();
+        
+        animateCounter('statsGuilds', previousStats.guilds || 0, data.guilds || 0);
+        animateCounter('statsMembers', previousStats.members || 0, data.members || 0);
+        animateCounter('statsEndpoints', 504, data.endpoints || 504);
+        animateCounter('statsTriggers', 816, data.triggers || 816);
         document.getElementById('statsLatency').innerText = Math.round(data.ping || 0) + ' ms';
+        previousStats = data;
       } catch (err) {}
     }
+
+    function animateCounter(elementId, start, end, duration = 1000) {
+      const el = document.getElementById(elementId);
+      if (!el) return;
+      if (start === end && el.innerText !== '--') return;
+      
+      let startTime = null;
+      function step(timestamp) {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+        const current = Math.floor(start + (end - start) * ease);
+        el.innerText = current.toLocaleString();
+        if (progress < 1) requestAnimationFrame(step);
+        else el.innerText = end.toLocaleString();
+      }
+      requestAnimationFrame(step);
+    }
+
     loadStats();
     setInterval(loadStats, 4000);
 
-    // Command Catalog Dataset
-    const commandsData = [
-      { trigger: "mainrole scan", category: "security", perms: "Server Owner", desc: "Audits all protected roles and strips active dangerous permissions." },
-      { trigger: "antinuke enable", category: "security", perms: "Server Owner", desc: "Arms real-time audit log interceptor against unauthorized attacks." },
-      { trigger: "antinuke snapshot", category: "security", perms: "Server Owner", desc: "Serializes complete guild structure, roles, and channels to database." },
-      { trigger: "antibetray set <count> <sec>", category: "security", perms: "Server Owner", desc: "Configures velocity limit for staff administrative actions." },
-      { trigger: "ban <@user> [reason]", category: "moderation", perms: "Ban Members", desc: "Bans a member with strict hierarchy & Server Owner protection checks." },
-      { trigger: "clearall [amount]", category: "moderation", perms: "Manage Messages", desc: "Purges up to 100 messages with high-speed rate-limited cleanup." },
-      { trigger: "clearlinks [amount]", category: "moderation", perms: "Manage Messages", desc: "Purges only messages containing external links or invites." },
-      { trigger: "fp set <@role>", category: "security", perms: "Server Owner", desc: "Authorizes a staff role to run Zenith moderation without Discord perms." },
-      { trigger: "voice setup", category: "voice", perms: "Manage Channels", desc: "Creates automated Join-to-Create temporary voice lounge system." },
-      { trigger: "voice lock", category: "voice", perms: "Voice Owner", desc: "Locks current temporary voice channel to prevent unwanted joins." },
-      { trigger: "automod antispam <on/off>", category: "automod", perms: "Administrator", desc: "Enforces burst rate-limits on incoming channel messages." },
-      { trigger: "automod words add <word>", category: "automod", perms: "Administrator", desc: "Adds forbidden term to real-time message suppression engine." },
-      { trigger: "play <query / url>", category: "music", perms: "Connect", desc: "High-fidelity audio streaming through Lavalink cluster." },
-      { trigger: "autoplay", category: "music", perms: "Connect", desc: "Toggles intelligent YouTube RD mix parallel track discovery." }
-    ];
-
-    function filterCommands(cat, el) {
-      document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
-      el.classList.add('active');
-      renderCommands(cat);
-    }
-
-    function renderCommands(cat) {
-      const tbody = document.getElementById('commandTableBody');
-      tbody.innerHTML = '';
-      const filtered = cat === 'all' ? commandsData : commandsData.filter(c => c.category === cat);
-      filtered.forEach((c, idx) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><span class="cmd-trigger">z!${c.trigger}</span></td>
-          <td><span style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-secondary);">${c.perms}</span></td>
-          <td style="color: var(--text-secondary);">${c.desc}</td>
-        `;
-        tbody.appendChild(tr);
+    // Emil Kowalski Cursor Spotlight Physics on Glass Cards
+    document.querySelectorAll('.glass-card').forEach(card => {
+      card.addEventListener('mousemove', e => {
+        const rect = card.getBoundingClientRect();
+        card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+        card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
       });
-    }
-    renderCommands('all');
+    });
 
     // Taste Skill Compliant Interactive Copy Button (No disruptive window.alert)
     let copyResetTimer = null;

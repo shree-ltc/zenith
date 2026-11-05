@@ -872,7 +872,16 @@
       if (activeGuildId) loadGuildDetails(activeGuildId);
     }
 
-    window.onload = loadGuilds;
+    window.onload = () => {
+      loadGuilds();
+      document.querySelectorAll('.card, .stat-card').forEach(card => {
+        card.addEventListener('mousemove', e => {
+          const rect = card.getBoundingClientRect();
+          card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+          card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+        });
+      });
+    };
   </script>
 </body>
 </html>

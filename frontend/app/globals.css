@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-primary: #07070A;
+    --accent-blue: #5865F2;
+    --accent-green: #23A55A;
+  }
+}

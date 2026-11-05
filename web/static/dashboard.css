@@ -470,6 +470,8 @@ a {
 }
 
 .stat-card {
+  position: relative;
+  overflow: hidden;
   background: var(--glass-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -624,8 +626,10 @@ a {
   width: 100%;
 }
 
-/* Glass Card 2px Lift with Light Border Step (Taste Skill Rule 33) */
+/* Glass Card 2px Lift with Light Border Step & Cursor Spotlight */
 .glass-card {
+  position: relative;
+  overflow: hidden;
   background: var(--glass-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -640,6 +644,27 @@ a {
               box-shadow var(--m-out) var(--m-ease),
               background var(--m-out) var(--m-ease);
   will-change: transform;
+}
+
+.glass-card::before, .stat-card::before, .card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(380px circle at var(--mouse-x, -1000px) var(--mouse-y, -1000px), rgba(88, 101, 242, 0.15), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.25s var(--m-ease);
+  pointer-events: none;
+  z-index: 0;
+  border-radius: inherit;
+}
+
+.glass-card:hover::before, .stat-card:hover::before, .card:hover::before {
+  opacity: 1;
+}
+
+.glass-card > *, .stat-card > *, .card > * {
+  position: relative;
+  z-index: 1;
 }
 
 .glass-card:hover {
@@ -1077,6 +1102,8 @@ a {
 }
 
 .card {
+  position: relative;
+  overflow: hidden;
   background: var(--glass-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
