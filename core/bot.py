@@ -96,15 +96,15 @@ async def determine_prefix(bot: "ZenithBot", message: discord.Message) -> list[s
     is_np = getattr(bot, "is_noprefix", None)
     if is_np and is_np(user_id):
         if not message.guild:
-            return commands.when_mentioned_or(config.DEFAULT_PREFIX, "")(bot, message)
+            return commands.when_mentioned_or(config.DEFAULT_PREFIX, "z!", "&", "")(bot, message)
         prefix = await db.get_prefix(message.guild.id)
-        return commands.when_mentioned_or(prefix, "")(bot, message)
+        return commands.when_mentioned_or(prefix, "z!", "&", "")(bot, message)
 
     if not message.guild:
-        return commands.when_mentioned_or(config.DEFAULT_PREFIX)(bot, message)
+        return commands.when_mentioned_or(config.DEFAULT_PREFIX, "z!", "&")(bot, message)
 
     prefix = await db.get_prefix(message.guild.id)
-    return commands.when_mentioned_or(prefix)(bot, message)
+    return commands.when_mentioned_or(prefix, "z!", "&")(bot, message)
 
 
 class ZenithBot(commands.AutoShardedBot):
