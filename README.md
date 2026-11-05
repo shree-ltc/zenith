@@ -5,7 +5,7 @@
 
   <p>
     <a href="https://python.org"><img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.10+" /></a>
-    <a href="https://github.com/Rapptz/discord.py"><img src="https://img.shields.io/badge/discord.py-2.3+-5865F2?style=flat-square&logo=discord&logoColor=white" alt="discord.py" /></a>
+    <a href="https://github.com/Rapptz/discord.py"><img src="https://img.shields.io/badge/Components_V2-Enabled-000000?style=flat-square&logo=discord&logoColor=white" alt="Components V2" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-success?style=flat-square" alt="License: MIT" /></a>
     <a href="https://discord.com/users/1465912900710305822"><img src="https://img.shields.io/badge/Discord-shree.ltc-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
   </p>
@@ -18,6 +18,12 @@ Zenith is equipped with **47 distinct feature modules**, providing **504 direct 
 ---
 
 ## Core Systems & Highlights
+
+### Discord Components V2 Architecture
+* **Pure Obsidian Styling (`0x000000`)**: Full implementation of Discord's next-generation Components V2 layout (`Container`, `Section`, `TextDisplay`, `Separator`, `ActionRow`, `Thumbnail`).
+* **Nested Interactive Controls**: All interactive controls (buttons, pagination switches, confirmation toggles, category dropdown selects) are cleanly nested **INSIDE** the Container via `ActionRow`.
+* **Universal Conversion Layer**: Zenith's custom execution context (`ZenithContext`) automatically adapts standard Discord responses and embeds into sleek obsidian Components V2 Containers, guaranteeing uniform visual presentation across all 504 command endpoints.
+* **Interactive Help & Diagnostics**: Category explorer, telemetry latency displays, and multi-page statistics views built directly on Components V2.
 
 ### Integrated Web Dashboard & Control Plane
 * **Embedded Zero-Latency Web Server**: Runs directly inside Zenith's event loop on port `8080` with direct in-memory access to active guilds, channels, roles, and database states.

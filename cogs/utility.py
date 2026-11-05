@@ -21,6 +21,7 @@ from discord.ext import commands
 import psutil
 
 from core.config import config
+from ui.components import ping_container, stats_paged_container
 
 THEME_COLOR = 0x0F0F13
 CUSTOM_EMOJI_REGEX = re.compile(r"<(a)?:([a-zA-Z0-9_]+):([0-9]+)>")
@@ -366,11 +367,15 @@ class Utility(commands.Cog):
 
         api_latency = round((end_time - start_time) * 1000)
         ws_latency = round(self.bot.latency * 1000)
+        msg_latency = round((time.time() - ctx.message.created_at.timestamp()) * 1000)
 
-        embed = discord.Embed(title="[TELEMETRY] Zenith Response Speeds", color=THEME_COLOR)
-        embed.add_field(name="REST API Roundtrip", value=f"`{api_latency} ms`", inline=True)
-        embed.add_field(name="Gateway Latency", value=f"`{ws_latency} ms`", inline=True)
-        await msg.edit(content=None, embed=embed)
+        container_data = ping_container(
+            ws_ms=ws_latency,
+            msg_ms=abs(msg_latency),
+            api_ms=api_latency,
+            bot_avatar=self.bot.user.display_avatar.url
+        )
+        await msg.edit(content=None, view=container_data["view"])
 
     @commands.command(name="botinfo", aliases=["stats", "about", "info"])
     async def botinfo_command(self, ctx: commands.Context):
@@ -389,22 +394,43 @@ class Utility(commands.Cog):
         total_users = sum(g.member_count or 0 for g in self.bot.guilds)
         total_shards = self.bot.shard_count or 1
 
-        embed = discord.Embed(title="[SYSTEM ARCHITECTURE] Zenith Core", color=THEME_COLOR)
-        embed.set_thumbnail(url=self.bot.user.display_avatar.url)
+        body = (
+            f"• **Guilds :** `{total_guilds:,}` servers\n"
+            f"• **Users :** `{total_users:,}` cached accounts\n"
+            f"• **Shards :** `{total_shards}` active shards\n"
+            f"• **Memory :** `{memory_usage:.1f} MB` (RSS)\n"
+            f"• **CPU Load :** `{cpu_usage}%`\n"
+            f"• **System Uptime :** `{uptime_str}`\n"
+            f"• **Discord.py :** `v{discord.__version__}` (Components V2)\n"
+            f"• **Platform :** Linux / Python 3.12"
+        )
 
-        embed.add_field(name="Guild Footprint", value=f"**{total_guilds:,}** servers", inline=True)
-        embed.add_field(name="User Audience", value=f"**{total_users:,}** users", inline=True)
-        embed.add_field(name="Cluster Shards", value=f"**{total_shards}** active", inline=True)
+        team_data = {
+            "Architect": [("Shree", "shree.ltc", 1465912900710305822)],
+            "Developer": [("Shree", "shree.ltc", 1465912900710305822)],
+        }
 
-        embed.add_field(name="Memory (RSS)", value=f"`{memory_usage:.1f} MB`", inline=True)
-        embed.add_field(name="CPU Load", value=f"`{cpu_usage}%`", inline=True)
-        embed.add_field(name="System Uptime", value=f"`{uptime_str}`", inline=True)
+        cluster_data = [
+            ("Master Gateway", "Connected (0.0.0.0:8080)"),
+            ("PostgreSQL Cluster", "Pool Active (asyncpg)"),
+            ("Redis Cache", "Sub-millisecond L1 Memory"),
+            ("Components V2 UI", "Active (Obsidian Theme)"),
+        ]
 
-        embed.add_field(name="Discord.py Version", value=f"`v{discord.__version__}`", inline=True)
-        embed.add_field(name="Developer", value=f"{config.AUTHOR}", inline=True)
-        embed.add_field(name="Repository", value=f"[GitHub]({config.GITHUB_URL})", inline=True)
+        invite_url = getattr(config, "INVITE_URL", None) or "https://discord.com/oauth2/authorize?client_id=1298918870039527435&permissions=8&integration_type=0&scope=bot+applications.commands"
+        support_url = getattr(config, "SUPPORT_SERVER", None) or "https://discord.gg/zenith"
 
-        await ctx.reply(embed=embed, mention_author=False)
+        paged_view = stats_paged_container(
+            author_id=ctx.author.id,
+            bot_name=self.bot.user.name,
+            bot_avatar=self.bot.user.display_avatar.url,
+            invite_url=invite_url,
+            support_url=support_url,
+            bot_info_body=body,
+            team_data=team_data,
+            cluster_data=cluster_data,
+        )
+        await ctx.send(view=paged_view)
 
 
 async def setup(bot: commands.Bot):

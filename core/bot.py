@@ -6,15 +6,88 @@ Handles extension discovery, prefixes, and gateway events.
 import time
 import asyncio
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union, Any, List
 
 import aiohttp
 import discord
 from discord.ext import commands
+from discord import ui
 
 from core.config import config
 from core.database import db
 from core.logging import info, warn, error, success, logger
+from ui.components import embed_to_container
+
+
+class ZenithContext(commands.Context):
+    """
+    Zenith Custom Execution Context.
+    Adapts embeds seamlessly into Discord Components V2 Containers,
+    housing interactive controls inside the Container via ActionRow.
+    """
+
+    def _convert_kwargs(self, kwargs: dict) -> dict:
+        embed = kwargs.get("embed")
+        embeds = kwargs.get("embeds")
+        view = kwargs.get("view")
+
+        if embed is not None or embeds:
+            selects = []
+            buttons = []
+            if isinstance(view, discord.ui.View) and not isinstance(view, ui.LayoutView):
+                for item in view.children:
+                    if isinstance(item, (discord.ui.Select, discord.ui.ChannelSelect, discord.ui.RoleSelect, discord.ui.MentionableSelect, discord.ui.UserSelect)):
+                        selects.append(item)
+                    elif isinstance(item, discord.ui.Button):
+                        buttons.append(item)
+
+            containers: List[ui.Container] = []
+            if embed is not None:
+                c = embed_to_container(embed)
+                for sel in selects:
+                    c.add_item(ui.Separator())
+                    c.add_item(ui.ActionRow(sel))
+                if buttons:
+                    c.add_item(ui.Separator())
+                    for i in range(0, len(buttons), 5):
+                        c.add_item(ui.ActionRow(*buttons[i:i+5]))
+                containers.append(c)
+
+            if embeds:
+                for idx, emb in enumerate(embeds):
+                    c = embed_to_container(emb)
+                    if idx == len(embeds) - 1:
+                        for sel in selects:
+                            c.add_item(ui.Separator())
+                            c.add_item(ui.ActionRow(sel))
+                        if buttons:
+                            c.add_item(ui.Separator())
+                            for i in range(0, len(buttons), 5):
+                                c.add_item(ui.ActionRow(*buttons[i:i+5]))
+                    containers.append(c)
+
+            if isinstance(view, ui.LayoutView):
+                for c in containers:
+                    view.add_item(c)
+                layout_view = view
+            else:
+                layout_view = ui.LayoutView(timeout=getattr(view, "timeout", 180.0) if view else None)
+                for c in containers:
+                    layout_view.add_item(c)
+
+            kwargs["embed"] = None
+            kwargs["embeds"] = None
+            kwargs["view"] = layout_view
+
+        return kwargs
+
+    async def send(self, content=None, **kwargs):
+        kwargs = self._convert_kwargs(kwargs)
+        return await super().send(content, **kwargs)
+
+    async def reply(self, content=None, **kwargs):
+        kwargs = self._convert_kwargs(kwargs)
+        return await super().reply(content, **kwargs)
 
 
 async def determine_prefix(bot: "ZenithBot", message: discord.Message) -> list[str]:
@@ -68,6 +141,9 @@ class ZenithBot(commands.AutoShardedBot):
 
     def is_noprefix(self, user_id: int) -> bool:
         return user_id in self.noprefix_users or user_id in config.OWNER_IDS
+
+    async def get_context(self, origin: Union[discord.Message, discord.Interaction], /, *, cls=ZenithContext) -> Any:
+        return await super().get_context(origin, cls=cls)
 
     async def setup_hook(self) -> None:
         """Executes asynchronous setup before the bot connects to Discord gateway."""

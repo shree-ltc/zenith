@@ -17,6 +17,26 @@ from core.database import db
 from core.security import is_authorized_admin, DANGEROUS_PERMISSIONS, is_extra_owner, is_dangerous_role
 from core.config import config
 from core.logging import info, warn, error
+from ui import (
+    DEFAULT_ACCENT,
+    TAG_OK,
+    TAG_ERROR,
+    TAG_DENIED,
+    TAG_WARN,
+    denied_container,
+    error_container,
+    success_container,
+    action_container,
+    LayoutView,
+    Container,
+    Section,
+    TextDisplay,
+    Separator,
+    Thumbnail,
+    ActionRow,
+    Button,
+)
+from discord import UnfurledMediaItem
 
 ACCENT_COLOR = 0x0F0F13
 
@@ -38,6 +58,112 @@ MODULE_NAMES = {
     "integration": "Anti-Integration",
     "autorecovery": "Auto-Recovery",
 }
+
+
+class AntinukePanelLayoutView(LayoutView):
+    """Interactive Components V2 Control Panel for Antinuke."""
+
+    def __init__(self, cog: "Antinuke", ctx: commands.Context, cfg: Optional[dict]):
+        super().__init__(timeout=180.0)
+        self.cog = cog
+        self.ctx = ctx
+        self.author_id = ctx.author.id
+        self.cfg = cfg
+        self._build()
+
+    def _build(self) -> None:
+        self.clear_items()
+        is_armed = bool(self.cfg and self.cfg.get("enabled"))
+        status_tag = "[ARMED]" if is_armed else "[DISARMED]"
+        punish = self.cfg.get("punishment", "ban").upper() if self.cfg else "BAN"
+        log_ch = self.ctx.guild.get_channel(self.cfg.get("log_channel")) if self.cfg and self.cfg.get("log_channel") else None
+        log_str = log_ch.mention if log_ch else "None"
+
+        body = (
+            f"• **Defense Status :** `{status_tag}`\n"
+            f"• **Sanction Policy :** `{punish}`\n"
+            f"• **Audit Log Channel :** {log_str}\n\n"
+            f"Zenith Antinuke monitors the Discord gateway and audit stream in real time.\n"
+            f"Any rogue administrative action triggers instantaneous autonomous neutralization."
+        )
+
+        section = Section(
+            TextDisplay(f"### Antinuke Defense Suite\n{body}"),
+            accessory=Thumbnail(media=UnfurledMediaItem(url=self.cog.bot.user.display_avatar.url))
+        )
+
+        container = Container(accent_color=DEFAULT_ACCENT)
+        container.add_item(section)
+        container.add_item(Separator())
+
+        # Buttons nested INSIDE Container via ActionRow
+        btn_arm = Button(
+            label="Arm Defense" if not is_armed else "Re-Arm",
+            style=discord.ButtonStyle.success,
+            custom_id=f"an_arm_{id(self)}"
+        )
+        btn_disarm = Button(
+            label="Disarm Defense",
+            style=discord.ButtonStyle.danger,
+            disabled=not is_armed,
+            custom_id=f"an_disarm_{id(self)}"
+        )
+        btn_wl = Button(
+            label="Whitelist",
+            style=discord.ButtonStyle.secondary,
+            custom_id=f"an_wl_{id(self)}"
+        )
+
+        btn_arm.callback = self._on_arm
+        btn_disarm.callback = self._on_disarm
+        btn_wl.callback = self._on_wl
+
+        row = ActionRow(btn_arm, btn_disarm, btn_wl)
+        container.add_item(row)
+        container.add_item(Separator())
+        container.add_item(TextDisplay("-# Zenith Security Bus • Real-Time Protection Active"))
+
+        self.add_item(container)
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.author_id:
+            await interaction.response.send_message(
+                f"{TAG_DENIED} You are not authorized to interact with this security panel.",
+                ephemeral=True
+            )
+            return False
+        return True
+
+    async def _on_arm(self, interaction: discord.Interaction) -> None:
+        await interaction.response.defer()
+        await db.execute(
+            """
+            INSERT INTO antinuke_config (guild_id, enabled, punishment, anti_ban, anti_kick, anti_channel, anti_role, anti_bot, anti_webhook)
+            VALUES (?, TRUE, 'ban', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE)
+            ON CONFLICT(guild_id) DO UPDATE SET enabled = TRUE
+            """,
+            self.ctx.guild.id
+        )
+        await db.cache_set(f"antinuke:enabled:{self.ctx.guild.id}", "1", ttl=300)
+        self.cfg = await self.cog.get_config(self.ctx.guild.id)
+        self._build()
+        await interaction.followup.edit_message(message_id=interaction.message.id, view=self)
+
+    async def _on_disarm(self, interaction: discord.Interaction) -> None:
+        await interaction.response.defer()
+        await db.execute("UPDATE antinuke_config SET enabled = FALSE WHERE guild_id = ?", self.ctx.guild.id)
+        await db.cache_set(f"antinuke:enabled:{self.ctx.guild.id}", "0", ttl=300)
+        self.cfg = await self.cog.get_config(self.ctx.guild.id)
+        self._build()
+        await interaction.followup.edit_message(message_id=interaction.message.id, view=self)
+
+    async def _on_wl(self, interaction: discord.Interaction) -> None:
+        rows = await db.fetch("SELECT user_id FROM antinuke_whitelist WHERE guild_id = ?", self.ctx.guild.id)
+        if not rows:
+            await interaction.response.send_message("[INFO] No whitelisted members configured.", ephemeral=True)
+            return
+        users_str = ", ".join(f"<@{r['user_id']}>" for r in rows)
+        await interaction.response.send_message(f"**Whitelisted Members:**\n{users_str}", ephemeral=True)
 
 
 class Antinuke(commands.Cog):
@@ -407,50 +533,14 @@ class Antinuke(commands.Cog):
     async def antinuke_group(self, ctx: commands.Context):
         """Antinuke system status, controls, and configuration."""
         if not await is_authorized_admin(ctx.author.id, ctx.guild, self.bot):
-            embed = discord.Embed(
-                title="[ACCESS DENIED]",
-                description="Antinuke controls are strictly reserved for the Server Owner and Extra Owners.",
-                color=ACCENT_COLOR
-            )
-            return await ctx.send(embed=embed)
+            return await ctx.send(**denied_container(
+                "Antinuke controls are strictly reserved for the Server Owner and Extra Owners.",
+                footer="Zenith Security Bus"
+            ))
 
         cfg = await self.get_config(ctx.guild.id)
-        status = "Active & Armed" if cfg else "Disabled / Disarmed"
-        punish = cfg.get("punishment", "ban").upper() if cfg else "BAN"
-        log_ch = ctx.guild.get_channel(cfg.get("log_channel")) if cfg and cfg.get("log_channel") else None
-        log_str = log_ch.mention if log_ch else "None Configured"
-
-        embed = discord.Embed(
-            title="[ANTINUKE DEFENSE SYSTEM]",
-            description=(
-                "Zenith Antinuke monitors the Discord gateway and audit stream in real time. "
-                "Any unauthorized destructive event triggers immediate autonomous neutralization."
-            ),
-            color=ACCENT_COLOR
-        )
-        embed.add_field(name="Defense Status", value=f"`[{status}]`", inline=True)
-        embed.add_field(name="Enforced Sanction", value=f"`{punish}`", inline=True)
-        embed.add_field(name="Security Log Channel", value=log_str, inline=True)
-        embed.add_field(
-            name="Available Commands",
-            value=(
-                f"`{ctx.prefix}antinuke enable` - Arm security protocols\n"
-                f"`{ctx.prefix}antinuke disable` - Disarm security protocols\n"
-                f"`{ctx.prefix}antinuke filters` - View all 16 module statuses\n"
-                f"`{ctx.prefix}antinuke punishment <ban/kick>` - Set penalty\n"
-                f"`{ctx.prefix}antinuke logs <channel>` - Set alert log channel\n"
-                f"`{ctx.prefix}antinuke wl <user>` - Add user to whitelist\n"
-                f"`{ctx.prefix}antinuke unwl <user>` - Remove user from whitelist\n"
-                f"`{ctx.prefix}antinuke wlist` - List whitelisted members\n"
-                f"`{ctx.prefix}antinuke wlreset` - Clear all whitelisted users\n"
-                f"`{ctx.prefix}antinuke snapshot` - Save server backup snapshot\n"
-                f"`{ctx.prefix}antinuke serverrecovery` - Restore server from snapshot\n"
-                f"`{ctx.prefix}extraowner <add/remove/list/reset>` - Manage extra owners"
-            ),
-            inline=False
-        )
-        embed.set_footer(text="Zenith Autonomous Defense | Developed by Shree")
-        await ctx.send(embed=embed)
+        view = AntinukePanelLayoutView(self, ctx, cfg)
+        await ctx.send(view=view)
 
     @antinuke_group.command(name="enable", aliases=["on", "arm"])
     @commands.guild_only()
