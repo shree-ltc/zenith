@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-type="software" data-motion="true">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="page-type" content="software">
+  <meta name="site-kind" content="software">
   <title>Zenith • Enterprise Discord Security &amp; Automation Architecture</title>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <link rel="stylesheet" href="/static/dashboard.css">
@@ -12,14 +14,14 @@
 </head>
 <body>
 
-  <!-- Fixed Ambient Radial Background Glows (Zero Overflow) -->
-  <div class="ambient-background-wrapper">
+  <!-- Fixed Ambient Radial Background Glows (Strict Zero-Overflow Ground) -->
+  <div class="ambient-background-wrapper" aria-hidden="true">
     <div class="ambient-glow-top"></div>
     <div class="ambient-glow-side"></div>
   </div>
 
-  <!-- Navigation Bar -->
-  <nav class="navbar">
+  <!-- Symmetrical Universal Navbar -->
+  <nav class="navbar" data-enter style="--enter-i: 0;">
     <div class="container" style="display: flex; align-items: center; justify-content: space-between;">
       <div class="brand">
         <img src="/static/logo.svg" alt="Zenith Logo" class="brand-logo">
@@ -31,7 +33,7 @@
         <a href="#features" class="nav-link">Features</a>
         <a href="#commands" class="nav-link">Commands</a>
         <a href="#architecture" class="nav-link">Architecture</a>
-        <a href="https://github.com/shree-ltc/zenith" target="_blank" class="nav-link">GitHub</a>
+        <a href="https://github.com/shree-ltc/zenith" target="_blank" rel="noopener noreferrer" class="nav-link">GitHub</a>
         <div class="status-pill">
           <span class="status-indicator"></span>
           <span>GATEWAY ONLINE</span>
@@ -44,54 +46,56 @@
   <!-- Hero Section -->
   <header class="hero">
     <div class="container">
-      <div class="hero-tag">
+      <div class="hero-tag" data-enter style="--enter-i: 1;">
         <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-blue);"></span>
         <span>ENTERPRISE DISCORD DEFENSE ARCHITECTURE</span>
       </div>
 
-      <h1 class="hero-title">High-Performance Discord Security<br>&amp; Autonomous Administration</h1>
+      <h1 class="hero-title" data-enter style="--enter-i: 2;">
+        High-Performance Discord Security<br>&amp; Autonomous Administration
+      </h1>
       
-      <p class="hero-desc">
+      <p class="hero-desc" data-enter style="--enter-i: 3;">
         Engineered for community defense, privilege escalation prevention, autonomous raid neutralization,
         and complete server orchestration. Features real-time audit log analysis, sub-millisecond memory caching,
         and 504 direct command endpoints with a dark obsidian aesthetic.
       </p>
 
-      <div class="hero-actions">
+      <div class="hero-actions" data-enter style="--enter-i: 4;">
         <a href="/dashboard" class="btn btn-primary" style="height: 46px; padding: 0 1.75rem; font-size: 0.95rem;">
           Launch Server Dashboard
         </a>
-        <a href="https://github.com/shree-ltc/zenith" target="_blank" class="btn btn-secondary" style="height: 46px; padding: 0 1.75rem; font-size: 0.95rem;">
+        <a href="https://github.com/shree-ltc/zenith" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="height: 46px; padding: 0 1.75rem; font-size: 0.95rem;">
           Explore GitHub Repository
         </a>
       </div>
 
-      <!-- Live Stats Strip -->
+      <!-- Live Stats Strip (Staggered Entry 5 to 9) -->
       <div class="stats-strip">
-        <div class="stat-card">
+        <div class="stat-card" data-enter style="--enter-i: 5;">
           <div class="stat-value" id="statsGuilds">--</div>
           <div class="stat-label">Active Guilds</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" data-enter style="--enter-i: 6;">
           <div class="stat-value" id="statsMembers">--</div>
           <div class="stat-label">Cached Members</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" data-enter style="--enter-i: 7;">
           <div class="stat-value" id="statsEndpoints">504</div>
           <div class="stat-label">Command Endpoints</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" data-enter style="--enter-i: 8;">
           <div class="stat-value" id="statsTriggers">816</div>
           <div class="stat-label">Invocable Triggers</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" data-enter style="--enter-i: 9;">
           <div class="stat-value" id="statsLatency">-- ms</div>
           <div class="stat-label">Gateway Ping</div>
         </div>
       </div>
 
-      <!-- Live Gateway Terminal Component -->
-      <div class="terminal-window">
+      <!-- Live Gateway Telemetry Terminal Component -->
+      <div class="terminal-window" data-enter style="--enter-i: 10;">
         <div class="terminal-header">
           <div class="terminal-dots">
             <span class="terminal-dot dot-red"></span>
@@ -114,14 +118,14 @@
 
   <!-- Core Systems & Feature Matrix -->
   <section class="container" id="features" style="padding-top: 1rem; padding-bottom: 2rem;">
-    <div class="section-header">
+    <div class="section-header" data-enter style="--enter-i: 11;">
       <div class="section-tag">[DEFENSE ARCHITECTURE]</div>
       <h2 class="section-title">Built For Extreme Reliability</h2>
       <p class="section-subtitle">Zero privilege leaks, zero decorative clutter, and autonomous real-time protection.</p>
     </div>
 
     <div class="features-grid">
-      <div class="glass-card">
+      <div class="glass-card" data-enter style="--enter-i: 12;">
         <span class="feature-tag">[SECURITY] MAINROLE GUARD</span>
         <h3 class="feature-title">Privilege Escalation Shield</h3>
         <p class="feature-desc">
@@ -130,7 +134,7 @@
         </p>
       </div>
 
-      <div class="glass-card">
+      <div class="glass-card" data-enter style="--enter-i: 13;">
         <span class="feature-tag">[ANTINUKE] GATEWAY DEFENSE</span>
         <h3 class="feature-title">Autonomous Raid Defense</h3>
         <p class="feature-desc">
@@ -139,7 +143,7 @@
         </p>
       </div>
 
-      <div class="glass-card">
+      <div class="glass-card" data-enter style="--enter-i: 14;">
         <span class="feature-tag">[VELOCITY] ANTI-BETRAY SHIELD</span>
         <h3 class="feature-title">Compromised Staff Mitigation</h3>
         <p class="feature-desc">
@@ -148,7 +152,7 @@
         </p>
       </div>
 
-      <div class="glass-card">
+      <div class="glass-card" data-enter style="--enter-i: 15;">
         <span class="feature-tag">[MODERATION] FAKE PERMISSIONS</span>
         <h3 class="feature-title">Zero-Trust Staff Authorization</h3>
         <p class="feature-desc">
@@ -157,7 +161,7 @@
         </p>
       </div>
 
-      <div class="glass-card">
+      <div class="glass-card" data-enter style="--enter-i: 16;">
         <span class="feature-tag">[PURIFICATION] PURGE MATRIX</span>
         <h3 class="feature-title">Target-Specific Message Purge</h3>
         <p class="feature-desc">
@@ -166,7 +170,7 @@
         </p>
       </div>
 
-      <div class="glass-card">
+      <div class="glass-card" data-enter style="--enter-i: 17;">
         <span class="feature-tag">[STREAMING] AUDIO ENGINE</span>
         <h3 class="feature-title">Lavalink &amp; Smart Autoplay</h3>
         <p class="feature-desc">
@@ -179,20 +183,20 @@
 
   <!-- Interactive Command Explorer Component -->
   <section class="container" id="commands" style="padding-bottom: 2rem;">
-    <div class="section-header">
+    <div class="section-header" data-enter style="--enter-i: 18;">
       <div class="section-tag">[COMMAND MATRIX]</div>
       <h2 class="section-title">504 Direct Endpoints • 816 Invocable Triggers</h2>
       <p class="section-subtitle">Explore Zenith's 47 cogs across security, administration, voice, and server utilities.</p>
     </div>
 
-    <div class="command-explorer">
+    <div class="command-explorer" data-enter style="--enter-i: 19;">
       <div class="category-pills">
-        <div class="cat-pill active" onclick="filterCommands('all', this)">All Modules</div>
-        <div class="cat-pill" onclick="filterCommands('security', this)">Security &amp; Antinuke</div>
-        <div class="cat-pill" onclick="filterCommands('moderation', this)">Moderation &amp; Purge</div>
-        <div class="cat-pill" onclick="filterCommands('voice', this)">Voice &amp; Lounges</div>
-        <div class="cat-pill" onclick="filterCommands('automod', this)">Automod Matrix</div>
-        <div class="cat-pill" onclick="filterCommands('music', this)">Audio &amp; Lavalink</div>
+        <button type="button" class="cat-pill active" onclick="filterCommands('all', this)">All Modules</button>
+        <button type="button" class="cat-pill" onclick="filterCommands('security', this)">Security &amp; Antinuke</button>
+        <button type="button" class="cat-pill" onclick="filterCommands('moderation', this)">Moderation &amp; Purge</button>
+        <button type="button" class="cat-pill" onclick="filterCommands('voice', this)">Voice &amp; Lounges</button>
+        <button type="button" class="cat-pill" onclick="filterCommands('automod', this)">Automod Matrix</button>
+        <button type="button" class="cat-pill" onclick="filterCommands('music', this)">Audio &amp; Lavalink</button>
       </div>
 
       <div class="table-responsive">
@@ -214,26 +218,26 @@
 
   <!-- Architecture Flow Component -->
   <section class="container" id="architecture" style="padding-bottom: 2rem;">
-    <div class="section-header">
+    <div class="section-header" data-enter style="--enter-i: 20;">
       <div class="section-tag">[SYSTEM ARCHITECTURE]</div>
       <h2 class="section-title">Three-Tier Defense Pipeline</h2>
       <p class="section-subtitle">How Zenith safeguards guilds from attacks, compromised tokens, and permission leaks.</p>
     </div>
 
     <div class="architecture-flow">
-      <div class="flow-step">
+      <div class="flow-step" data-enter style="--enter-i: 21;">
         <div class="flow-step-num">01</div>
         <h3 class="flow-title">Gateway Interception</h3>
         <p class="flow-desc">Intercepts incoming gateway events before guild members are exposed to unauthorized role or permission grants.</p>
       </div>
 
-      <div class="flow-step">
+      <div class="flow-step" data-enter style="--enter-i: 22;">
         <div class="flow-step-num">02</div>
         <h3 class="flow-title">In-Memory Security Shield</h3>
         <p class="flow-desc">Validates actor hierarchy, whitelists, and daily quota consumption with sub-millisecond RAM response.</p>
       </div>
 
-      <div class="flow-step">
+      <div class="flow-step" data-enter style="--enter-i: 23;">
         <div class="flow-step-num">03</div>
         <h3 class="flow-title">Dual-Engine Persistence</h3>
         <p class="flow-desc">Reconstructs damaged channels and role hierarchies from serialized snapshots across PostgreSQL and SQLite.</p>
@@ -243,13 +247,13 @@
 
   <!-- One-Click Deployment Banner -->
   <section class="container" style="padding-bottom: 5rem;">
-    <div class="deploy-banner">
+    <div class="deploy-banner" data-enter style="--enter-i: 24;">
       <h2 class="deploy-title">Ready to Fortify Your Server?</h2>
       <p class="deploy-desc">Self-host Zenith in seconds with direct Python or Docker support, or manage via the integrated Web Control Plane.</p>
       
       <div class="copy-box">
         <span class="copy-text" id="gitCloneText">git clone https://github.com/shree-ltc/zenith.git</span>
-        <button class="btn btn-secondary" style="height: 32px; padding: 0 0.85rem; font-size: 0.8rem;" onclick="copyCloneCommand()">
+        <button id="copyBtn" class="btn btn-secondary" style="height: 32px; padding: 0 0.85rem; font-size: 0.8rem;" onclick="copyCloneCommand()">
           Copy Command
         </button>
       </div>
@@ -263,7 +267,7 @@
         <img src="/static/logo.svg" alt="Zenith" style="width: 24px; height: 24px;">
         <span style="font-weight: 700; color: #FFFFFF; font-size: 1.05rem;">Zenith Architecture</span>
       </div>
-      <p>Engineered by <a href="https://github.com/shree-ltc" target="_blank" style="color: var(--accent-blue); font-weight: 600; text-decoration: underline;">Shree</a> • Open-Source MIT License</p>
+      <p>Engineered by <a href="https://github.com/shree-ltc" target="_blank" rel="noopener noreferrer" style="color: var(--accent-blue); font-weight: 600; text-decoration: underline;">Shree</a> • Open-Source MIT License</p>
       <p style="margin-top: 0.5rem; font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-muted);">
         Discord: shree.ltc (ID: 1465912900710305822) • Zero Decorative Emojis • Sub-millisecond Execution Bus
       </p>
@@ -314,7 +318,7 @@
       const tbody = document.getElementById('commandTableBody');
       tbody.innerHTML = '';
       const filtered = cat === 'all' ? commandsData : commandsData.filter(c => c.category === cat);
-      filtered.forEach(c => {
+      filtered.forEach((c, idx) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td><span class="cmd-trigger">z!${c.trigger}</span></td>
@@ -326,10 +330,25 @@
     }
     renderCommands('all');
 
+    // Taste Skill Compliant Interactive Copy Button (No disruptive window.alert)
+    let copyResetTimer = null;
     function copyCloneCommand() {
       const text = document.getElementById('gitCloneText').innerText;
+      const btn = document.getElementById('copyBtn');
       navigator.clipboard.writeText(text);
-      alert('[COPIED] Git clone command copied to clipboard.');
+
+      btn.innerText = '[OK] COPIED';
+      btn.style.background = 'rgba(35, 165, 90, 0.2)';
+      btn.style.borderColor = 'var(--accent-green)';
+      btn.style.color = 'var(--accent-green)';
+
+      if (copyResetTimer) clearTimeout(copyResetTimer);
+      copyResetTimer = setTimeout(() => {
+        btn.innerText = 'Copy Command';
+        btn.style.background = '';
+        btn.style.borderColor = '';
+        btn.style.color = '';
+      }, 2000);
     }
   </script>
 </body>

@@ -24,3 +24,7 @@ logs/
 .idea/
 *.swp
 *.swo
+
+# Agent Skill Large Assets
+.agents/**/assets/
+

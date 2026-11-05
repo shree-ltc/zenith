@@ -1,33 +1,60 @@
 /* ==========================================================================
-   Zenith Glassmorphic Design System
+   Zenith Glassmorphic Design System & Motion Framework
    Engineered by Shree (shree-ltc)
-   Palette: Dark Obsidian #09090D | Glass rgba(18, 19, 28, 0.75) | Accent #5865F2
-   Zero Horizontal Overflow - Full Mobile & Desktop Responsive Precision
+   Attribution: Discord ID 1465912900710305822 | github.com/shree-ltc
+   Palette: Dark Obsidian #07070A | Glass rgba(18, 19, 28, 0.75) | Accent #5865F2
+   Standards: Taste Skill 2.5 (anti-slop) & Motion Design Principles (Emil Kowalski, Jakub Krehel)
+   Strict Zero Horizontal Overflow • Mobile & Desktop Responsive Precision
    ========================================================================== */
 
 :root {
+  /* Core Obsidian Glass Palette */
   --bg-primary: #07070A;
   --bg-secondary: #0D0E14;
   --bg-tertiary: #13141D;
   --glass-bg: rgba(18, 19, 28, 0.72);
   --glass-bg-hover: rgba(24, 25, 38, 0.88);
   --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-border-hover: rgba(88, 101, 242, 0.38);
+  --glass-border-hover: rgba(88, 101, 242, 0.42);
   --glass-border-subtle: rgba(255, 255, 255, 0.04);
   --glass-glow: 0 16px 40px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --glass-glow-lift: 0 22px 50px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(88, 101, 242, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+
+  /* Typography Colors */
   --text-primary: #FFFFFF;
   --text-secondary: #9DA3B4;
   --text-muted: #5C6275;
+
+  /* Accent Signatures */
   --accent-blue: #5865F2;
   --accent-blue-glow: rgba(88, 101, 242, 0.35);
   --accent-green: #23A55A;
+  --accent-green-glow: rgba(35, 165, 90, 0.35);
   --accent-red: #F23F43;
+  --accent-red-glow: rgba(242, 63, 67, 0.35);
   --accent-yellow: #F0B232;
+
+  /* Typography Families */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
+
+  /* Motion & Taste Tokens (Emil Kowalski & Jakub Krehel Principles) */
+  --m-in: 140ms;
+  --m-out: 200ms;
+  --m-press: 90ms;
+  --m-panel: 220ms;
+  --m-slide: 240ms;
+  --m-image: 600ms;
+  --m-cycle: 3.2s;
+
+  /* Custom Easing Curves (No unnatural pops, pure refined deceleration) */
+  --m-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --m-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --m-ease-io: cubic-bezier(0.65, 0, 0.35, 1);
+  --m-ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.15);
 }
 
-/* Strict Zero-Overflow Rules for Mobile & Desktop */
+/* ---------------- Strict Zero-Overflow Foundations ---------------- */
 html, body {
   width: 100%;
   max-width: 100%;
@@ -39,15 +66,59 @@ html, body {
   font-family: var(--font-sans);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-* {
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-/* Fixed Background Wrapper (Can Never Cause Horizontal Overflow) */
+/* ---------------- Staggered Entry Reveal System (Jakub Krehel Enter Recipe) ---------------- */
+/* Combines opacity + translateY(8px) + blur(4px) for a physical materializing arrival */
+[data-enter] {
+  opacity: 0;
+  transform: translateY(8px);
+  filter: blur(4px);
+  animation: enter-reveal 0.42s var(--m-ease-out) forwards;
+  animation-delay: calc(var(--enter-i, 0) * 45ms);
+  will-change: opacity, transform, filter;
+}
+
+[data-enter="fade"] {
+  opacity: 0;
+  transform: none;
+  filter: blur(2px);
+  animation: enter-fade 0.35s var(--m-ease-out) forwards;
+  animation-delay: calc(var(--enter-i, 0) * 40ms);
+}
+
+@keyframes enter-reveal {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0px);
+  }
+}
+
+@keyframes enter-fade {
+  0% {
+    opacity: 0;
+    filter: blur(2px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0px);
+  }
+}
+
+/* ---------------- Fixed Ambient Radial Backgrounds ---------------- */
 .ambient-background-wrapper {
   position: fixed;
   inset: 0;
@@ -66,16 +137,16 @@ html, body {
   width: 700px;
   max-width: 90vw;
   height: 450px;
-  background: radial-gradient(circle, rgba(88, 101, 242, 0.14) 0%, rgba(7, 7, 10, 0) 70%);
+  background: radial-gradient(circle, rgba(88, 101, 242, 0.15) 0%, rgba(7, 7, 10, 0) 70%);
 }
 
 .ambient-glow-side {
   position: absolute;
-  top: 500px;
+  top: 520px;
   right: -100px;
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, rgba(88, 101, 242, 0.07) 0%, rgba(7, 7, 10, 0) 70%);
+  background: radial-gradient(circle, rgba(88, 101, 242, 0.08) 0%, rgba(7, 7, 10, 0) 70%);
 }
 
 /* Symmetrical Universal Container */
@@ -93,7 +164,7 @@ a {
   text-decoration: none;
 }
 
-/* Custom Scrollbar */
+/* Custom Sleek Scrollbar */
 ::-webkit-scrollbar {
   width: 7px;
   height: 7px;
@@ -147,6 +218,11 @@ a {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
   border: 1px solid var(--glass-border);
   flex-shrink: 0;
+  transition: transform var(--m-out) var(--m-ease);
+}
+
+.brand-logo:hover {
+  transform: scale(1.04);
 }
 
 .brand-name {
@@ -172,19 +248,41 @@ a {
   gap: 1.25rem;
 }
 
+/* Nav Link Underline Drawing (Taste Skill House Rule) */
 .nav-link {
   font-size: 0.88rem;
   font-weight: 500;
   color: var(--text-secondary);
-  transition: color 0.15s ease;
   white-space: nowrap;
+  position: relative;
+  padding-bottom: 2px;
+  transition: color var(--m-in) var(--m-ease);
+}
+
+.nav-link::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 1.5px;
+  background: var(--accent-blue);
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform var(--m-out) var(--m-ease);
 }
 
 .nav-link:hover {
   color: var(--text-primary);
 }
 
-/* ---------------- Buttons ---------------- */
+.nav-link:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* ---------------- Interactive Tactile Buttons (Emil Kowalski Principles) ---------------- */
+/* Features 1px step on hover, tactile scale(0.975) on press, and settling focus rings */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -193,14 +291,34 @@ a {
   font-size: 0.875rem;
   font-weight: 600;
   height: 40px;
-  padding: 0 1.2rem;
+  padding: 0 1.25rem;
   border-radius: 6px;
   border: 1px solid transparent;
   cursor: pointer;
-  transition: all 0.2s ease;
   font-family: var(--font-sans);
   white-space: nowrap;
   flex-shrink: 0;
+  transition: background var(--m-in) var(--m-ease),
+              border-color var(--m-in) var(--m-ease),
+              box-shadow var(--m-in) var(--m-ease),
+              transform var(--m-in) var(--m-ease),
+              color var(--m-in) var(--m-ease);
+  will-change: transform;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(1px) scale(0.975) !important;
+  transition-duration: var(--m-press);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(88, 101, 242, 0.25);
 }
 
 .btn-sm {
@@ -219,7 +337,7 @@ a {
 .btn-primary:hover {
   background: linear-gradient(135deg, #6875F5, #535ECF);
   box-shadow: 0 6px 20px rgba(88, 101, 242, 0.5);
-  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 .btn-secondary {
@@ -232,8 +350,7 @@ a {
 
 .btn-secondary:hover {
   background: var(--glass-bg-hover);
-  border-color: rgba(255, 255, 255, 0.18);
-  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .btn-danger {
@@ -245,16 +362,17 @@ a {
 .btn-danger:hover {
   background: var(--accent-red);
   color: #FFFFFF;
-  box-shadow: 0 4px 16px rgba(242, 63, 67, 0.4);
+  box-shadow: 0 6px 20px rgba(242, 63, 67, 0.45);
 }
 
+/* Live Telemetry Status Pill */
 .status-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.5rem;
   font-family: var(--font-mono);
   font-size: 0.75rem;
-  padding: 0.3rem 0.65rem;
+  padding: 0.3rem 0.7rem;
   border-radius: 20px;
   background: rgba(35, 165, 90, 0.12);
   color: var(--accent-green);
@@ -262,12 +380,30 @@ a {
   white-space: nowrap;
 }
 
+/* Subtle 2.4s Life Sign Pulse (Taste Skill Rule 86) */
 .status-indicator {
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background-color: var(--accent-green);
   box-shadow: 0 0 6px var(--accent-green);
+  position: relative;
+}
+
+.status-indicator::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1px solid var(--accent-green);
+  opacity: 0;
+  animation: status-ring 2.4s infinite var(--m-ease);
+}
+
+@keyframes status-ring {
+  0% { transform: scale(0.8); opacity: 0.8; }
+  60% { transform: scale(2.2); opacity: 0; }
+  100% { transform: scale(2.2); opacity: 0; }
 }
 
 /* ---------------- Hero Section ---------------- */
@@ -342,12 +478,22 @@ a {
   padding: 1.5rem 1rem;
   border-radius: 10px;
   text-align: center;
-  transition: all 0.2s ease;
+  transition: transform var(--m-out) var(--m-ease),
+              border-color var(--m-out) var(--m-ease),
+              box-shadow var(--m-out) var(--m-ease),
+              background var(--m-out) var(--m-ease);
+  will-change: transform;
 }
 
 .stat-card:hover {
   border-color: var(--glass-border-hover);
   transform: translateY(-2px);
+  box-shadow: var(--glass-glow-lift);
+}
+
+.stat-card:active {
+  transform: translateY(0) scale(0.985);
+  transition-duration: var(--m-press);
 }
 
 .stat-value {
@@ -367,9 +513,9 @@ a {
   letter-spacing: 0.06em;
 }
 
-/* ---------------- Interactive Terminal Component ---------------- */
+/* ---------------- Live Telemetry Terminal Window ---------------- */
 .terminal-window {
-  background: rgba(12, 13, 19, 0.9);
+  background: rgba(12, 13, 19, 0.92);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border);
@@ -380,6 +526,11 @@ a {
   position: relative;
   z-index: 1;
   width: 100%;
+  transition: border-color var(--m-out) var(--m-ease);
+}
+
+.terminal-window:hover {
+  border-color: rgba(88, 101, 242, 0.35);
 }
 
 .terminal-header {
@@ -402,6 +553,11 @@ a {
   width: 10px;
   height: 10px;
   border-radius: 50%;
+  transition: transform var(--m-in) var(--m-ease);
+}
+
+.terminal-dot:hover {
+  transform: scale(1.15);
 }
 
 .dot-red { background: #FF5F56; }
@@ -468,6 +624,7 @@ a {
   width: 100%;
 }
 
+/* Glass Card 2px Lift with Light Border Step (Taste Skill Rule 33) */
 .glass-card {
   background: var(--glass-bg);
   backdrop-filter: blur(16px);
@@ -476,14 +633,24 @@ a {
   box-shadow: var(--glass-glow);
   border-radius: 10px;
   padding: 1.75rem;
-  transition: all 0.25s ease;
   display: flex;
   flex-direction: column;
+  transition: transform var(--m-out) var(--m-ease),
+              border-color var(--m-out) var(--m-ease),
+              box-shadow var(--m-out) var(--m-ease),
+              background var(--m-out) var(--m-ease);
+  will-change: transform;
 }
 
 .glass-card:hover {
   border-color: var(--glass-border-hover);
   transform: translateY(-2px);
+  box-shadow: var(--glass-glow-lift);
+}
+
+.glass-card:active {
+  transform: translateY(0) scale(0.985);
+  transition-duration: var(--m-press);
 }
 
 .feature-tag {
@@ -497,6 +664,11 @@ a {
   align-self: flex-start;
   margin-bottom: 1rem;
   border: 1px solid rgba(88, 101, 242, 0.2);
+  transition: border-color var(--m-in) var(--m-ease);
+}
+
+.glass-card:hover .feature-tag {
+  border-color: rgba(88, 101, 242, 0.4);
 }
 
 .feature-title {
@@ -535,19 +707,32 @@ a {
 .cat-pill {
   font-family: var(--font-mono);
   font-size: 0.78rem;
-  padding: 0.35rem 0.8rem;
+  padding: 0.35rem 0.85rem;
   border-radius: 20px;
   background: var(--bg-tertiary);
   color: var(--text-secondary);
   border: 1px solid var(--glass-border);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--m-in) var(--m-ease);
+  user-select: none;
 }
 
-.cat-pill:hover, .cat-pill.active {
-  background: rgba(88, 101, 242, 0.18);
+.cat-pill:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.cat-pill:active {
+  transform: scale(0.96);
+  transition-duration: var(--m-press);
+}
+
+.cat-pill.active {
+  background: rgba(88, 101, 242, 0.2);
   color: #FFFFFF;
   border-color: var(--accent-blue);
+  box-shadow: 0 0 12px var(--accent-blue-glow);
 }
 
 .table-responsive {
@@ -577,6 +762,11 @@ a {
   padding: 0.85rem;
   border-bottom: 1px solid var(--glass-border-subtle);
   font-size: 0.88rem;
+  transition: background var(--m-in) var(--m-ease);
+}
+
+.cmd-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .cmd-trigger {
@@ -603,6 +793,20 @@ a {
   border-radius: 10px;
   padding: 1.75rem;
   text-align: center;
+  transition: transform var(--m-out) var(--m-ease),
+              border-color var(--m-out) var(--m-ease),
+              box-shadow var(--m-out) var(--m-ease);
+}
+
+.flow-step:hover {
+  transform: translateY(-2px);
+  border-color: var(--glass-border-hover);
+  box-shadow: var(--glass-glow-lift);
+}
+
+.flow-step:active {
+  transform: translateY(0) scale(0.985);
+  transition-duration: var(--m-press);
 }
 
 .flow-step-num {
@@ -610,14 +814,20 @@ a {
   font-size: 0.82rem;
   color: var(--accent-blue);
   background: rgba(88, 101, 242, 0.12);
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 1rem;
   border: 1px solid rgba(88, 101, 242, 0.25);
+  transition: transform var(--m-out) var(--m-ease), background var(--m-out) var(--m-ease);
+}
+
+.flow-step:hover .flow-step-num {
+  transform: scale(1.08);
+  background: rgba(88, 101, 242, 0.2);
 }
 
 .flow-title {
@@ -668,6 +878,11 @@ a {
   max-width: 100%;
   flex-wrap: wrap;
   justify-content: center;
+  transition: border-color var(--m-in) var(--m-ease);
+}
+
+.copy-box:hover {
+  border-color: rgba(88, 101, 242, 0.4);
 }
 
 .copy-text {
@@ -677,7 +892,7 @@ a {
   word-break: break-all;
 }
 
-/* ---------------- Dashboard Layout ---------------- */
+/* ---------------- Dashboard Layout & Panels ---------------- */
 .dashboard-container {
   display: flex;
   min-height: calc(100vh - 67px);
@@ -721,21 +936,24 @@ a {
   color: var(--text-primary);
   border: 1px solid var(--glass-border);
   border-radius: 6px;
-  padding: 0 0.8rem;
+  padding: 0 0.85rem;
   font-size: 0.85rem;
   font-family: var(--font-sans);
   outline: none;
-  transition: all 0.2s ease;
+  transition: border-color var(--m-in) var(--m-ease),
+              box-shadow var(--m-in) var(--m-ease),
+              background var(--m-in) var(--m-ease);
 }
 
 .textarea-input {
   height: auto;
-  padding: 0.7rem 0.8rem;
+  padding: 0.75rem 0.85rem;
 }
 
 .select-input:focus, .text-input:focus, .textarea-input:focus {
   border-color: var(--accent-blue);
-  box-shadow: 0 0 10px var(--accent-blue-glow);
+  box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.25);
+  background: rgba(23, 24, 35, 0.95);
 }
 
 .nav-menu {
@@ -752,11 +970,15 @@ a {
   font-weight: 500;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background var(--m-in) var(--m-ease),
+              color var(--m-in) var(--m-ease),
+              border-color var(--m-in) var(--m-ease),
+              transform var(--m-in) var(--m-ease);
   display: flex;
   align-items: center;
   gap: 0.75rem;
   border: 1px solid transparent;
+  user-select: none;
 }
 
 .nav-item:hover {
@@ -764,10 +986,16 @@ a {
   color: var(--text-primary);
 }
 
+.nav-item:active {
+  transform: scale(0.985);
+  transition-duration: var(--m-press);
+}
+
 .nav-item.active {
   background: rgba(88, 101, 242, 0.14);
   color: #FFFFFF;
   border: 1px solid rgba(88, 101, 242, 0.3);
+  box-shadow: inset 2px 0 0 0 var(--accent-blue);
 }
 
 .main-content {
@@ -777,6 +1005,29 @@ a {
   overflow-y: auto;
   max-width: 100%;
   min-width: 0;
+}
+
+/* Materializing Tab Panel Transition (Jakub Krehel Recipe) */
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+  animation: tab-enter var(--m-panel) var(--m-ease) forwards;
+}
+
+@keyframes tab-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+    filter: blur(3px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0px);
+  }
 }
 
 /* Responsive Grid Systems */
@@ -835,6 +1086,13 @@ a {
   padding: 1.5rem;
   margin-bottom: 1.5rem;
   width: 100%;
+  transition: transform var(--m-out) var(--m-ease),
+              border-color var(--m-out) var(--m-ease),
+              box-shadow var(--m-out) var(--m-ease);
+}
+
+.card:hover {
+  border-color: rgba(255, 255, 255, 0.14);
 }
 
 .card-title {
@@ -850,7 +1108,53 @@ a {
   margin-bottom: 1.25rem;
 }
 
-/* ---------------- Toggles ---------------- */
+/* ---------------- Interactive Chips ---------------- */
+.chip-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+
+.chip {
+  background: rgba(25, 26, 38, 0.8);
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all var(--m-in) var(--m-ease);
+}
+
+.chip:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(32, 33, 48, 0.9);
+}
+
+.chip:active {
+  transform: scale(0.975);
+  transition-duration: var(--m-press);
+}
+
+.chip-remove {
+  cursor: pointer;
+  color: var(--accent-red);
+  font-weight: 700;
+  padding: 0 0.2rem;
+  transition: color var(--m-in) var(--m-ease), transform var(--m-in) var(--m-ease);
+}
+
+.chip-remove:hover {
+  color: #FF7B7D;
+  transform: scale(1.15);
+}
+
+/* ---------------- Interactive Spring Toggles ---------------- */
+/* Features knob slide + dynamic stretch physics on press (Taste Skill Rule 57) */
 .toggle-row {
   display: flex;
   align-items: center;
@@ -892,13 +1196,12 @@ a {
 .slider {
   position: absolute;
   cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background-color: var(--bg-tertiary);
   border: 1px solid var(--glass-border);
-  transition: 0.2s ease;
+  transition: background-color var(--m-out) var(--m-ease),
+              border-color var(--m-out) var(--m-ease),
+              box-shadow var(--m-out) var(--m-ease);
   border-radius: 25px;
 }
 
@@ -910,14 +1213,21 @@ a {
   left: 3px;
   bottom: 3px;
   background-color: #8E9297;
-  transition: 0.2s ease;
   border-radius: 50%;
+  transition: transform var(--m-slide) var(--m-ease-spring),
+              width var(--m-press) var(--m-ease),
+              background-color var(--m-out) var(--m-ease);
+}
+
+/* Taste stretch micro-physics while pressed */
+.switch:active .slider:before {
+  width: 21px;
 }
 
 input:checked + .slider {
   background-color: var(--accent-blue);
   border-color: var(--accent-blue);
-  box-shadow: 0 0 8px var(--accent-blue-glow);
+  box-shadow: 0 0 10px var(--accent-blue-glow);
 }
 
 input:checked + .slider:before {
@@ -925,7 +1235,7 @@ input:checked + .slider:before {
   background-color: #FFFFFF;
 }
 
-/* ---------------- Toast Notification ---------------- */
+/* ---------------- Materializing Toast Notification ---------------- */
 .toast {
   position: fixed;
   bottom: 1.5rem;
@@ -943,6 +1253,20 @@ input:checked + .slider:before {
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
   z-index: 1000;
   max-width: 90vw;
+  animation: toast-in var(--m-panel) var(--m-ease) forwards;
+}
+
+@keyframes toast-in {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0px);
+  }
 }
 
 /* ---------------- Footer ---------------- */
@@ -1017,4 +1341,40 @@ input:checked + .slider:before {
   .hero-title { font-size: 1.85rem; }
   .hero-actions .btn { width: 100%; }
   .brand-badge { display: none !important; }
+}
+
+/* ---------------- Strict Accessibility (prefers-reduced-motion) ---------------- */
+/* Taste Skill & Motion Design Standards: Disables all motion/blur while retaining instant colors */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  [data-enter], [data-enter="fade"] {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    animation: none !important;
+  }
+
+  .btn:hover, .btn:active,
+  .glass-card:hover, .glass-card:active,
+  .stat-card:hover, .stat-card:active,
+  .flow-step:hover, .flow-step:active,
+  .card:hover, .card:active {
+    transform: none !important;
+  }
+
+  .status-indicator::after {
+    animation: none !important;
+  }
+
+  .tab-content.active {
+    animation: none !important;
+    filter: none !important;
+    transform: none !important;
+  }
 }
