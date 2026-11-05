@@ -51,6 +51,8 @@ class Config:
     DASHBOARD_ENABLED: bool = os.getenv("DASHBOARD_ENABLED", "true").lower() in ("true", "1", "yes")
     DASHBOARD_HOST: str = os.getenv("DASHBOARD_HOST", "0.0.0.0")
     DASHBOARD_PORT: int = int(os.getenv("DASHBOARD_PORT", "8080"))
+    DASHBOARD_ADMIN_PASSWORD: str = os.getenv("DASHBOARD_ADMIN_PASSWORD", "zenith-admin-2026")
+    DASHBOARD_SESSION_SECRET: str = os.getenv("DASHBOARD_SESSION_SECRET", "zenith-secure-session-key-49281")
 
     # Defaults
     ANTINUKE_PUNISHMENT: str = os.getenv("ANTINUKE_PUNISHMENT", "ban")

@@ -38,10 +38,12 @@ export default function Home() {
               GATEWAY ONLINE
             </span>
             <a
-              href="/dashboard"
+              href="https://discord.com/oauth2/authorize?client_id=1465912900710305822&permissions=8&scope=bot%20applications.commands"
+              target="_blank"
+              rel="noopener noreferrer"
               className="rounded-md bg-[#5865F2] px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-[#5865F2]/25 hover:bg-[#6875F5] active:scale-95 transition-all"
             >
-              Control Plane
+              Add to Discord
             </a>
           </div>
         </div>

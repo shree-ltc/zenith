@@ -7,6 +7,8 @@ Developed by Shree (Discord ID: 1465912900710305822).
 import time
 import json
 import asyncio
+import hmac
+import hashlib
 from pathlib import Path
 from typing import Optional
 
@@ -22,6 +24,8 @@ from core.logging import info, warn, error
 from core.security import is_dangerous_role, DANGEROUS_PERMISSIONS
 
 ACCENT_COLOR = 0x0F0F13
+COOKIE_NAME = "zenith_admin_session"
+SESSION_MAX_AGE = 86400 * 7  # 7 days active session validity
 
 
 class Dashboard(commands.Cog):
@@ -57,6 +61,9 @@ class Dashboard(commands.Cog):
 
             # HTML Pages
             self.app.router.add_get("/", self.handle_home)
+            self.app.router.add_get("/admin/login", self.handle_login_page)
+            self.app.router.add_post("/admin/login", self.handle_login_submit)
+            self.app.router.add_get("/admin/logout", self.handle_logout)
             self.app.router.add_get("/dashboard", self.handle_dashboard)
 
             # REST APIs
@@ -94,6 +101,49 @@ class Dashboard(commands.Cog):
             info("Web Dashboard service stopped cleanly.", "web")
 
     # ------------------------------------------------------------------
+    # Security & Session Authentication
+    # ------------------------------------------------------------------
+
+    def _make_session_token(self, timestamp: int) -> str:
+        """Generates an HMAC SHA-256 signed session token."""
+        msg = f"zenith-admin:{timestamp}:{config.DASHBOARD_ADMIN_PASSWORD}".encode()
+        digest = hmac.new(config.DASHBOARD_SESSION_SECRET.encode(), msg, hashlib.sha256).hexdigest()
+        return f"{timestamp}.{digest}"
+
+    def _verify_session(self, request: web.Request) -> bool:
+        """Verifies session cookie or Bearer API token."""
+        # 1. Cookie check
+        cookie = request.cookies.get(COOKIE_NAME)
+        if cookie and "." in cookie:
+            try:
+                ts_str, digest = cookie.split(".", 1)
+                ts = int(ts_str)
+                if time.time() - ts <= SESSION_MAX_AGE:
+                    expected = self._make_session_token(ts).split(".", 1)[1]
+                    if hmac.compare_digest(digest, expected):
+                        return True
+            except Exception:
+                pass
+
+        # 2. Bearer API header check
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:].strip()
+            if hmac.compare_digest(token, config.DASHBOARD_ADMIN_PASSWORD):
+                return True
+
+        return False
+
+    def _require_admin(self, request: web.Request) -> Optional[web.Response]:
+        """Guard method rejecting unauthenticated API consumers."""
+        if not self._verify_session(request):
+            return web.json_response(
+                {"error": "Unauthorized: Administrative clearance required to access node telemetry and controls."},
+                status=401
+            )
+        return None
+
+    # ------------------------------------------------------------------
     # HTML Handlers
     # ------------------------------------------------------------------
 
@@ -107,14 +157,68 @@ class Dashboard(commands.Cog):
             "github_url": config.GITHUB_URL
         }
 
-    @aiohttp_jinja2.template("dashboard.html")
-    async def handle_dashboard(self, request: web.Request) -> dict:
-        """Renders the Zenith administrative control plane."""
+    @aiohttp_jinja2.template("login.html")
+    async def handle_login_page(self, request: web.Request) -> dict:
+        """Renders the administrative clearance gate."""
+        if self._verify_session(request):
+            raise web.HTTPFound("/dashboard")
         return {
-            "title": "Zenith • Control Plane",
+            "title": "Zenith • Admin Clearance Portal",
             "bot_name": config.BOT_NAME,
-            "author": config.AUTHOR
+            "error": request.query.get("error", "")
         }
+
+    async def handle_login_submit(self, request: web.Request) -> web.Response:
+        """Validates admin password and generates signed session cookie."""
+        try:
+            data = await request.post()
+            password = data.get("password", "").strip()
+            if not password:
+                raise web.HTTPFound("/admin/login?error=Password+required")
+
+            if hmac.compare_digest(password, config.DASHBOARD_ADMIN_PASSWORD):
+                now_ts = int(time.time())
+                token = self._make_session_token(now_ts)
+                response = web.HTTPFound("/dashboard")
+                response.set_cookie(
+                    COOKIE_NAME,
+                    token,
+                    max_age=SESSION_MAX_AGE,
+                    httponly=True,
+                    samesite="Lax",
+                    path="/"
+                )
+                info("[SECURITY] Successful administrative session established.", "web")
+                return response
+            else:
+                warn("[SECURITY] Failed administrative login attempt.", "web")
+                raise web.HTTPFound("/admin/login?error=Invalid+administrative+password")
+        except web.HTTPFound:
+            raise
+        except Exception as e:
+            error(f"Login failure: {e}", "web")
+            raise web.HTTPFound("/admin/login?error=Authentication+processing+error")
+
+    async def handle_logout(self, request: web.Request) -> web.Response:
+        """Revokes administrative session and returns to public site."""
+        response = web.HTTPFound("/")
+        response.del_cookie(COOKIE_NAME, path="/")
+        return response
+
+    async def handle_dashboard(self, request: web.Request) -> web.Response:
+        """Renders the Zenith administrative control plane with security verification."""
+        if not self._verify_session(request):
+            raise web.HTTPFound("/admin/login")
+
+        return aiohttp_jinja2.render_template(
+            "dashboard.html",
+            request,
+            {
+                "title": "Zenith • Control Plane",
+                "bot_name": config.BOT_NAME,
+                "author": config.AUTHOR
+            }
+        )
 
     # ------------------------------------------------------------------
     # REST API Endpoints
@@ -143,7 +247,11 @@ class Dashboard(commands.Cog):
         })
 
     async def api_guilds(self, request: web.Request) -> web.Response:
-        """Returns list of connected guilds with summary telemetry."""
+        """Returns list of connected guilds with summary telemetry (Protected)."""
+        auth_err = self._require_admin(request)
+        if auth_err:
+            return auth_err
+
         guild_list = []
         for g in self.bot.guilds:
             guild_list.append({
@@ -155,7 +263,11 @@ class Dashboard(commands.Cog):
         return web.json_response(guild_list)
 
     async def api_guild_details(self, request: web.Request) -> web.Response:
-        """Returns detailed channel, role, and subsystem settings for a guild."""
+        """Returns detailed channel, role, and subsystem settings for a guild (Protected)."""
+        auth_err = self._require_admin(request)
+        if auth_err:
+            return auth_err
+
         guild_id_str = request.match_info.get("guild_id")
         if not guild_id_str or not guild_id_str.isdigit():
             return web.json_response({"error": "Invalid guild ID"}, status=400)
@@ -239,7 +351,11 @@ class Dashboard(commands.Cog):
         })
 
     async def api_save_antinuke(self, request: web.Request) -> web.Response:
-        """Persist updated antinuke settings to database and memory cache."""
+        """Persist updated antinuke settings to database and memory cache (Protected)."""
+        auth_err = self._require_admin(request)
+        if auth_err:
+            return auth_err
+
         guild_id = int(request.match_info["guild_id"])
         data = await request.json()
 
@@ -276,7 +392,11 @@ class Dashboard(commands.Cog):
         return web.json_response({"status": "ok", "message": "Antinuke configuration updated."})
 
     async def api_save_automod(self, request: web.Request) -> web.Response:
-        """Persist updated automod settings and forbidden words."""
+        """Persist updated automod settings and forbidden words (Protected)."""
+        auth_err = self._require_admin(request)
+        if auth_err:
+            return auth_err
+
         guild_id = int(request.match_info["guild_id"])
         data = await request.json()
 
@@ -314,7 +434,11 @@ class Dashboard(commands.Cog):
         return web.json_response({"status": "ok", "message": "Automod settings updated."})
 
     async def api_save_welcome(self, request: web.Request) -> web.Response:
-        """Persist welcome channel, message, and join autoroles."""
+        """Persist welcome channel, message, and join autoroles (Protected)."""
+        auth_err = self._require_admin(request)
+        if auth_err:
+            return auth_err
+
         guild_id = int(request.match_info["guild_id"])
         data = await request.json()
 
@@ -354,7 +478,11 @@ class Dashboard(commands.Cog):
         return web.json_response({"status": "ok", "message": "Welcome settings updated."})
 
     async def api_lockdown(self, request: web.Request) -> web.Response:
-        """Lock or unlock channels directly from the web panel."""
+        """Lock or unlock channels directly from the web panel (Protected)."""
+        auth_err = self._require_admin(request)
+        if auth_err:
+            return auth_err
+
         guild_id = int(request.match_info["guild_id"])
         data = await request.json()
         action = data.get("action", "lock")
@@ -382,7 +510,11 @@ class Dashboard(commands.Cog):
         return web.json_response({"status": "ok", "affected_channels": count})
 
     async def api_purge(self, request: web.Request) -> web.Response:
-        """Bulk purge recent messages from a channel."""
+        """Bulk purge recent messages from a channel (Protected)."""
+        auth_err = self._require_admin(request)
+        if auth_err:
+            return auth_err
+
         guild_id = int(request.match_info["guild_id"])
         data = await request.json()
         channel_id = int(data["channel_id"])
@@ -403,7 +535,11 @@ class Dashboard(commands.Cog):
             return web.json_response({"error": str(e)}, status=500)
 
     async def api_mainrole_scan(self, request: web.Request) -> web.Response:
-        """Executes real-time security audit scanning protected mainroles."""
+        """Executes real-time security audit scanning protected mainroles (Protected)."""
+        auth_err = self._require_admin(request)
+        if auth_err:
+            return auth_err
+
         guild_id = int(request.match_info["guild_id"])
         guild = self.bot.get_guild(guild_id)
         if not guild:
@@ -442,7 +578,11 @@ class Dashboard(commands.Cog):
         return web.json_response({"status": "ok", "details": "\n\n".join(result_lines)})
 
     async def api_say(self, request: web.Request) -> web.Response:
-        """Dispatches an announcement embed to a channel."""
+        """Dispatches an announcement embed to a channel (Protected)."""
+        auth_err = self._require_admin(request)
+        if auth_err:
+            return auth_err
+
         guild_id = int(request.match_info["guild_id"])
         data = await request.json()
         channel_id = int(data["channel_id"])

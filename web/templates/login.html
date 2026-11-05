@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en" data-type="software" data-motion="true">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="page-type" content="software">
+  <meta name="site-kind" content="software">
+  <title>Zenith • Admin Clearance Portal</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/dashboard.css?v=2.3">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Ambient Radial Glows -->
+  <div class="ambient-background-wrapper" aria-hidden="true">
+    <div class="ambient-glow-top"></div>
+  </div>
+
+  <div class="login-wrapper">
+    <div class="login-card" data-enter style="--enter-i: 0;">
+      <div class="login-header">
+        <div style="display: flex; justify-content: center; margin-bottom: 1rem;">
+          <img src="/static/logo.svg" alt="Zenith Logo" class="brand-logo" width="48" height="48" style="width: 48px; height: 48px; object-fit: contain;">
+        </div>
+        <div class="login-badge">
+          <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-red);"></span>
+          <span>RESTRICTED ACCESS // NODE GATE</span>
+        </div>
+        <h1 style="font-size: 1.35rem; font-weight: 700; color: #FFFFFF; margin-bottom: 0.35rem;">Zenith Control Plane</h1>
+        <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5;">Enter administrative security key to access connected servers, antinuke matrix, and real-time telemetry.</p>
+      </div>
+
+      {% if error %}
+      <div class="login-error">
+        [DENIED] {{ error }}
+      </div>
+      {% endif %}
+
+      <form action="/admin/login" method="POST">
+        <div class="login-field">
+          <label class="field-label" for="adminPassword">Administrative Password</label>
+          <input 
+            type="password" 
+            id="adminPassword" 
+            name="password" 
+            class="login-input" 
+            placeholder="Enter security key..." 
+            required 
+            autofocus
+            autocomplete="current-password"
+          >
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; height: 44px; margin-top: 0.5rem; justify-content: center; font-size: 0.9rem;">
+          Verify &amp; Enter Control Plane
+        </button>
+      </form>
+
+      <div style="text-align: center; margin-top: 1.75rem;">
+        <a href="/" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted); text-decoration: none; transition: color 0.15s ease;" onmouseover="this.style.color='#FFFFFF'" onmouseout="this.style.color='var(--text-muted)'">
+          &larr; Return to Public Website
+        </a>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
