@@ -7,36 +7,15 @@
   <meta name="site-kind" content="software">
   <title>Zenith • Enterprise Discord Security &amp; Automation Architecture</title>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-  <link rel="stylesheet" href="/static/dashboard.css">
+  <link rel="stylesheet" href="/static/dashboard.css?v=2.2">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
 
-  <!-- Minimal Top Loading Progress Bar -->
-  <div id="zenith-top-loader" class="zenith-top-loader"></div>
-
-  <!-- Precision Cyber Preloader Boot Sequence -->
-  <div id="zenith-preloader" class="zenith-preloader" aria-hidden="true">
-    <div class="preloader-content">
-      <div class="preloader-logo-wrap">
-        <img src="/static/logo.svg" alt="Zenith" class="preloader-logo">
-        <div class="preloader-glow-ring"></div>
-      </div>
-      <div class="preloader-status">
-        <span class="preloader-dot"></span>
-        <span id="preloaderStatusText">INITIALIZING ENGINE</span>
-      </div>
-      <div class="preloader-bar-wrap">
-        <div id="preloaderProgressBar" class="preloader-bar"></div>
-      </div>
-      <div class="preloader-meta">
-        <span id="preloaderPhaseText">CONNECTING IPC GATEWAY</span>
-        <span id="preloaderPercentText">0%</span>
-      </div>
-    </div>
-  </div>
+  <!-- Minimal Precision Top Loading Laser Bar -->
+  <div id="zenith-top-loader" class="zenith-top-loader" style="position:fixed;top:0;left:0;height:3px;width:0%;background:linear-gradient(90deg, #5865F2, #23A55A);box-shadow:0 0 10px rgba(88,101,242,0.85);z-index:9999999;transition:width 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;pointer-events:none;"></div>
 
   <!-- Fixed Ambient Radial Background Glows (Strict Zero-Overflow Ground) -->
   <div class="ambient-background-wrapper" aria-hidden="true">
@@ -48,7 +27,7 @@
   <nav class="navbar" data-enter style="--enter-i: 0;">
     <div class="container" style="display: flex; align-items: center; justify-content: space-between;">
       <div class="brand">
-        <img src="/static/logo.svg" alt="Zenith Logo" class="brand-logo">
+        <img src="/static/logo.svg" alt="Zenith Logo" class="brand-logo" width="36" height="36" style="width: 36px; height: 36px; object-fit: contain;">
         <span class="brand-name">Zenith</span>
         <span class="brand-badge">v1.0.0</span>
       </div>
@@ -288,71 +267,37 @@
     setInterval(loadStats, 4000);
 
     // =========================================================================
-    // Precision Cyber Preloader Boot Sequence
+    // Precision Laser Top Loading Effect (Linear / GitHub Style)
     // =========================================================================
-    (function initPreloader() {
-      const preloader = document.getElementById('zenith-preloader');
-      const bar = document.getElementById('preloaderProgressBar');
-      const percentText = document.getElementById('preloaderPercentText');
-      const statusText = document.getElementById('preloaderStatusText');
-      const phaseText = document.getElementById('preloaderPhaseText');
+    (function initTopLaserLoader() {
       const topLoader = document.getElementById('zenith-top-loader');
+      if (!topLoader) return;
 
-      if (!preloader || !bar) return;
+      topLoader.style.opacity = '1';
+      topLoader.style.width = '35%';
 
-      if (topLoader) {
-        topLoader.classList.add('active');
-        topLoader.style.width = '30%';
-      }
+      setTimeout(() => {
+        topLoader.style.width = '70%';
+      }, 120);
 
-      const phases = [
-        { p: 25, phase: 'ESTABLISHING IPC GATEWAY', status: 'SYNCHRONIZING' },
-        { p: 58, phase: 'VERIFYING SECURITY MATRIX', status: 'AUDIT IN-MEMORY' },
-        { p: 85, phase: 'MOUNTING REACT RUNTIME', status: 'TELEMETRY LIVE' },
-        { p: 100, phase: 'ALL SYSTEMS NOMINAL', status: 'SYSTEM CORE READY' }
-      ];
+      setTimeout(() => {
+        topLoader.style.width = '100%';
+      }, 260);
 
-      let step = 0;
-      function advance() {
-        if (step >= phases.length) {
-          if (topLoader) {
-            topLoader.style.width = '100%';
-            setTimeout(() => {
-              topLoader.classList.remove('active');
-              topLoader.style.width = '0%';
-            }, 300);
-          }
-          setTimeout(() => {
-            preloader.classList.add('loaded');
-          }, 120);
-          return;
-        }
-
-        const item = phases[step];
-        bar.style.width = item.p + '%';
-        if (percentText) percentText.innerText = item.p + '%';
-        if (phaseText) phaseText.innerText = item.phase;
-        if (statusText) statusText.innerText = item.status;
-        if (topLoader) topLoader.style.width = item.p + '%';
-
-        step++;
-        const delays = [90, 140, 120, 80];
-        setTimeout(advance, delays[step - 1] || 100);
-      }
-
-      requestAnimationFrame(() => {
-        setTimeout(advance, 40);
-      });
+      setTimeout(() => {
+        topLoader.style.opacity = '0';
+        setTimeout(() => {
+          topLoader.style.width = '0%';
+        }, 350);
+      }, 480);
 
       // Top progress bar on navigation clicks
       document.querySelectorAll('a[href^="/"]').forEach(link => {
         link.addEventListener('click', () => {
           const href = link.getAttribute('href');
           if (href && !href.startsWith('#') && !link.hasAttribute('target')) {
-            if (topLoader) {
-              topLoader.classList.add('active');
-              topLoader.style.width = '65%';
-            }
+            topLoader.style.opacity = '1';
+            topLoader.style.width = '75%';
           }
         });
       });
