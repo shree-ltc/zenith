@@ -13,7 +13,6 @@ interface LogEntry {
 
 export default function InteractiveTerminal() {
   const [isPaused, setIsPaused] = useState(false);
-  const [activeFilter, setActiveFilter] = useState('ALL');
   const [copied, setCopied] = useState(false);
   const bodyRef = useRef<HTMLDivElement | null>(null);
 
@@ -59,13 +58,8 @@ export default function InteractiveTerminal() {
     }
   }, [logs, isPaused]);
 
-  const filteredLogs = useMemo(() => {
-    if (activeFilter === 'ALL') return logs;
-    return logs.filter((l) => l.tag.includes(activeFilter));
-  }, [logs, activeFilter]);
-
   const handleCopy = () => {
-    const text = filteredLogs.map((l) => `[${l.time}] ${l.tag} ${l.text}`).join('\n');
+    const text = logs.map((l) => `[${l.time}] ${l.tag} ${l.text}`).join('\n');
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -73,54 +67,43 @@ export default function InteractiveTerminal() {
 
   return (
     <div className="w-full overflow-hidden rounded-xl border border-white/10 bg-[#0C0D13]/90 backdrop-blur-2xl shadow-2xl">
-      {/* Terminal Title Bar */}
+      {/* Symmetrical Clean Terminal Title Bar */}
       <div className="flex items-center justify-between border-b border-white/5 bg-[#12131B]/70 px-4 py-2.5">
-        <div className="flex items-center gap-3">
-          <div className="flex gap-1.5">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex gap-1.5 shrink-0">
             <span className="h-2.5 w-2.5 rounded-full bg-[#FF5F56]" />
             <span className="h-2.5 w-2.5 rounded-full bg-[#FFBD2E]" />
             <span className="h-2.5 w-2.5 rounded-full bg-[#27C93F]" />
           </div>
-          <span className="font-mono text-xs text-[#9DA3B4]">
-            zenith-core // real-time-telemetry-engine
+          <span className="font-mono text-xs text-[#9DA3B4] truncate">
+            zenith-core // live-telemetry-stream
           </span>
         </div>
 
-        {/* Filter Controls */}
-        <div className="flex items-center gap-2">
-          {['ALL', 'SHIELD', 'OK'].map((f) => (
-            <button
-              key={f}
-              type="button"
-              onClick={() => setActiveFilter(f)}
-              className={`rounded px-2 py-0.5 font-mono text-xs transition-colors ${
-                activeFilter === f
-                  ? 'border border-[#5865F2] bg-[#5865F2]/20 text-white'
-                  : 'border border-transparent text-[#5C6275] hover:text-white'
-              }`}
-            >
-              {f}
-            </button>
-          ))}
-
+        {/* Live Status Indicator & Copy Action */}
+        <div className="flex items-center gap-3 shrink-0">
           <button
             type="button"
             onClick={() => setIsPaused(!isPaused)}
-            className={`rounded border px-2 py-0.5 font-mono text-xs ${
-              isPaused
-                ? 'border-[#F23F43] bg-[#F23F43]/15 text-[#F23F43]'
-                : 'border-[#23A55A] bg-[#23A55A]/15 text-[#23A55A]'
-            }`}
+            title={isPaused ? "Click to resume live stream" : "Click to pause stream"}
+            className="inline-flex items-center gap-1.5 rounded border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-xs cursor-pointer hover:bg-white/10 transition-colors"
           >
-            {isPaused ? '[PAUSED]' : '[SYNC LIVE]'}
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${
+                isPaused ? "bg-[#F23F43] shadow-[0_0_6px_#F23F43]" : "bg-[#23A55A] shadow-[0_0_6px_#23A55A]"
+              }`}
+            />
+            <span className={isPaused ? "text-[#F23F43]" : "text-[#23A55A]"}>
+              {isPaused ? "[PAUSED]" : "[SYNC ACTIVE]"}
+            </span>
           </button>
 
           <button
             type="button"
             onClick={handleCopy}
-            className="rounded border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-xs text-[#9DA3B4] hover:text-white"
+            className="rounded border border-white/10 bg-white/5 px-2.5 py-0.5 font-mono text-xs text-[#9DA3B4] hover:text-white transition-colors cursor-pointer"
           >
-            {copied ? '[COPIED]' : 'COPY'}
+            {copied ? '[COPIED]' : 'Copy'}
           </button>
         </div>
       </div>
@@ -131,7 +114,7 @@ export default function InteractiveTerminal() {
         className="max-h-56 overflow-y-auto p-4 font-mono text-xs leading-relaxed text-[#D1D5DB]"
       >
         <AnimatePresence initial={false}>
-          {filteredLogs.map((log) => (
+          {logs.map((log) => (
             <motion.div
               key={log.id}
               initial={{ opacity: 0, y: 4 }}

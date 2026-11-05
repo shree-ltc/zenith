@@ -289,7 +289,6 @@
   // =========================================================================
   function InteractiveTelemetryTerminal() {
     const [isPaused, setIsPaused] = useState(false);
-    const [activeFilter, setActiveFilter] = useState('ALL');
     const [copied, setCopied] = useState(false);
     const bodyRef = useRef(null);
 
@@ -322,10 +321,10 @@
 
         setLogs((prev) => {
           const next = [...prev, { id: Date.now(), time: timeStr, tag: ev.tag, type: ev.type, text: ev.text }];
-          if (next.length > 30) next.shift();
+          if (next.length > 25) next.shift();
           return next;
         });
-      }, 3800);
+      }, 3600);
 
       return () => clearInterval(interval);
     }, [isPaused]);
@@ -337,13 +336,8 @@
       }
     }, [logs, isPaused]);
 
-    const filteredLogs = useMemo(() => {
-      if (activeFilter === 'ALL') return logs;
-      return logs.filter((l) => l.tag.includes(activeFilter));
-    }, [logs, activeFilter]);
-
     const handleCopy = () => {
-      const text = filteredLogs.map((l) => `[${l.time}] ${l.tag} ${l.text}`).join('\n');
+      const text = logs.map((l) => `[${l.time}] ${l.tag} ${l.text}`).join('\n');
       navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -351,14 +345,14 @@
 
     return React.createElement(
       'div',
-      { className: 'terminal-window', style: { width: '100%', marginBottom: '4rem' } },
-      // Terminal Header
+      { className: 'terminal-window', style: { width: '100%', marginBottom: '4.5rem' } },
+      // Symmetrical Unbreakable Terminal Header Bar
       React.createElement(
         'div',
         { className: 'terminal-header' },
         React.createElement(
           'div',
-          { style: { display: 'flex', alignItems: 'center', gap: '0.85rem' } },
+          { className: 'terminal-left' },
           React.createElement(
             'div',
             { className: 'terminal-dots' },
@@ -366,73 +360,46 @@
             React.createElement('span', { className: 'terminal-dot dot-yellow' }),
             React.createElement('span', { className: 'terminal-dot dot-green' })
           ),
-          React.createElement('span', { className: 'terminal-title' }, 'zenith-core // real-time-telemetry-engine')
+          React.createElement('span', { className: 'terminal-title' }, 'zenith-core // live-telemetry-stream')
         ),
-        // Filter Pills & Actions
         React.createElement(
           'div',
-          { style: { display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' } },
-          ['ALL', 'SHIELD', 'OK', 'STORAGE'].map((f) =>
+          { className: 'terminal-right' },
+          React.createElement(
+            'div',
+            {
+              className: 'terminal-live-badge',
+              onClick: () => setIsPaused(!isPaused),
+              title: isPaused ? 'Click to resume stream' : 'Click to pause stream'
+            },
+            React.createElement('span', {
+              className: 'terminal-live-dot',
+              style: {
+                backgroundColor: isPaused ? 'var(--accent-red)' : 'var(--accent-green)',
+                boxShadow: isPaused ? '0 0 6px var(--accent-red)' : '0 0 6px var(--accent-green)'
+              }
+            }),
             React.createElement(
-              'button',
-              {
-                key: f,
-                type: 'button',
-                onClick: () => setActiveFilter(f),
-                style: {
-                  background: activeFilter === f ? 'rgba(88, 101, 242, 0.25)' : 'rgba(255, 255, 255, 0.04)',
-                  color: activeFilter === f ? '#FFFFFF' : 'var(--text-muted)',
-                  border: `1px solid ${activeFilter === f ? 'var(--accent-blue)' : 'var(--glass-border)'}`,
-                  borderRadius: '4px',
-                  padding: '0.15rem 0.55rem',
-                  fontSize: '0.7rem',
-                  fontFamily: 'var(--font-mono)',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }
-              },
-              f
+              'span',
+              { style: { color: isPaused ? 'var(--accent-red)' : 'var(--accent-green)' } },
+              isPaused ? '[PAUSED]' : '[SYNC ACTIVE]'
             )
           ),
           React.createElement(
             'button',
             {
               type: 'button',
-              onClick: () => setIsPaused(!isPaused),
-              style: {
-                background: isPaused ? 'rgba(242, 63, 67, 0.15)' : 'rgba(35, 165, 90, 0.15)',
-                color: isPaused ? 'var(--accent-red)' : 'var(--accent-green)',
-                border: `1px solid ${isPaused ? 'var(--accent-red)' : 'var(--accent-green)'}`,
-                borderRadius: '4px',
-                padding: '0.15rem 0.55rem',
-                fontSize: '0.7rem',
-                fontFamily: 'var(--font-mono)',
-                cursor: 'pointer'
-              }
-            },
-            isPaused ? '[RESUME STREAM]' : '[SYNC LIVE]'
-          ),
-          React.createElement(
-            'button',
-            {
-              type: 'button',
               onClick: handleCopy,
-              style: {
-                background: copied ? 'rgba(35, 165, 90, 0.2)' : 'rgba(255, 255, 255, 0.04)',
-                color: copied ? 'var(--accent-green)' : 'var(--text-secondary)',
-                border: '1px solid var(--glass-border)',
-                borderRadius: '4px',
-                padding: '0.15rem 0.55rem',
-                fontSize: '0.7rem',
-                fontFamily: 'var(--font-mono)',
-                cursor: 'pointer'
-              }
+              className: 'terminal-copy-action',
+              style: copied
+                ? { background: 'rgba(35, 165, 90, 0.2)', borderColor: 'var(--accent-green)', color: 'var(--accent-green)' }
+                : {}
             },
-            copied ? '[COPIED]' : 'COPY'
+            copied ? '[COPIED]' : 'Copy'
           )
         )
       ),
-      // Terminal Body
+      // Terminal Body Stream
       React.createElement(
         'div',
         {
@@ -440,14 +407,14 @@
           className: 'terminal-body',
           style: { maxHeight: '220px', overflowY: 'auto' }
         },
-        filteredLogs.map((log) =>
+        logs.map((log) =>
           React.createElement(
             'div',
             {
               key: log.id,
               style: {
-                animation: 'enter-fade 0.25s var(--m-ease-out) both',
-                marginBottom: '0.2rem'
+                animation: 'enter-fade 0.2s var(--m-ease-out) both',
+                marginBottom: '0.25rem'
               }
             },
             React.createElement('span', { className: 'term-time' }, `[${log.time}] `),
