@@ -30,7 +30,7 @@ class NoPrefix(commands.Cog):
     # COMMANDS
     # ---------------------------------------------------------
 
-    @commands.group(name="noprefix", aliases=["nopre", "nop"], invoke_without_command=True)
+    @commands.group(name="noprefix", aliases=["np", "nopre", "nop"], invoke_without_command=True)
     async def noprefix_group(self, ctx: commands.Context):
         """No-prefix authorization controls."""
         if ctx.author.id not in config.OWNER_IDS:

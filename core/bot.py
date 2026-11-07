@@ -3,6 +3,7 @@ Core bot class for Zenith.
 Handles extension discovery, prefixes, and gateway events.
 """
 
+import os
 import time
 import asyncio
 from pathlib import Path
@@ -12,6 +13,12 @@ import aiohttp
 import discord
 from discord.ext import commands
 from discord import ui
+
+# Jishaku configuration flags
+os.environ["JISHAKU_NO_UNDERSCORE"] = "True"
+os.environ["JISHAKU_NO_DM_TRACEBACK"] = "True"
+os.environ["JISHAKU_HIDE"] = "True"
+os.environ["JISHAKU_FORCE_PAGINATOR"] = "True"
 
 from core.config import config
 from core.database import db
@@ -139,6 +146,39 @@ class ZenithBot(commands.AutoShardedBot):
         self.db = db
         self.noprefix_users: set[int] = set()
 
+        # Developer & Security State
+        self.maintenance_mode: bool = False
+        self.maintenance_reason: str = "Scheduled system maintenance in progress."
+        self.blacklisted_users: set[int] = set()
+        self.blacklisted_guilds: set[int] = set()
+        self.global_bans: set[int] = set()
+
+        # Global command security gate
+        @self.check
+        async def global_security_filter(ctx: commands.Context) -> bool:
+            # 1. Ignore blacklisted users
+            if ctx.author.id in self.blacklisted_users:
+                return False
+            # 2. Ignore blacklisted guilds
+            if ctx.guild and ctx.guild.id in self.blacklisted_guilds:
+                return False
+            # 3. Enforce maintenance mode for non-owners
+            if self.maintenance_mode and ctx.author.id not in config.OWNER_IDS:
+                embed = discord.Embed(
+                    title="[MAINTENANCE MODE ACTIVE]",
+                    description=(
+                        "Zenith is currently undergoing developer maintenance.\n\n"
+                        f"• **Reason:** {self.maintenance_reason}\n"
+                        "• **Status:** Operations in progress\n\n"
+                        "Command execution is temporarily restricted to bot developers."
+                    ),
+                    color=0x0F0F13
+                )
+                embed.set_footer(text="Zenith Suite | Developed by Shree")
+                await ctx.reply(embed=embed, mention_author=False)
+                return False
+            return True
+
     def is_noprefix(self, user_id: int) -> bool:
         return user_id in self.noprefix_users or user_id in config.OWNER_IDS
 
@@ -155,12 +195,47 @@ class ZenithBot(commands.AutoShardedBot):
         # 2. Initialize Database & Cache pools
         await self.db.initialize()
 
+        # 2b. Load System Security States (Maintenance, Blacklists, Global Bans)
+        try:
+            maint_row = await self.db.fetchrow("SELECT value FROM system_settings WHERE key = 'maintenance'")
+            if maint_row:
+                self.maintenance_mode = True
+                self.maintenance_reason = maint_row["value"]
+                warn(f"Maintenance mode active on boot: {self.maintenance_reason}", "core")
+
+            bl_rows = await self.db.fetch("SELECT target_id, target_type FROM blacklists")
+            for r in bl_rows:
+                if r["target_type"] == "user":
+                    self.blacklisted_users.add(r["target_id"])
+                elif r["target_type"] == "guild":
+                    self.blacklisted_guilds.add(r["target_id"])
+
+            gban_rows = await self.db.fetch("SELECT user_id FROM global_bans")
+            for r in gban_rows:
+                self.global_bans.add(r["user_id"])
+
+            success(
+                f"Security state initialized: {len(self.blacklisted_users)} user(s), "
+                f"{len(self.blacklisted_guilds)} guild(s) blacklisted, "
+                f"{len(self.global_bans)} global ban(s)",
+                "core"
+            )
+        except Exception as e:
+            warn(f"Failed to load system security states from DB: {e}", "core")
+
         # 3. Load Global Error Handler
         try:
             await self.load_extension("core.errors")
             success("Loaded core error handling subsystem", "core")
         except Exception as e:
             error(f"Failed to load core error handler: {e}", "core", exc_info=True)
+
+        # 3b. Load Jishaku (jsk) Diagnostic Engine
+        try:
+            await self.load_extension("jishaku")
+            success("Loaded Jishaku (jsk) diagnostic suite", "core")
+        except Exception as e:
+            warn(f"Failed to load Jishaku: {e}", "core")
 
         # 4. Discover and load all feature cogs
         cogs_dir = Path(__file__).resolve().parent.parent / "cogs"
@@ -194,6 +269,16 @@ class ZenithBot(commands.AutoShardedBot):
             name=f"{config.DEFAULT_PREFIX}help | Zenith Protection"
         )
         await self.change_presence(status=discord.Status.online, activity=activity)
+
+    async def on_member_join(self, member: discord.Member) -> None:
+        """Enforces global bans on joining accounts."""
+        if member.id in self.global_bans:
+            if member.guild.me.guild_permissions.ban_members and member.guild.me.top_role > member.top_role:
+                try:
+                    await member.ban(reason="[ZENITH GBAN] Globally banned account from bot network.")
+                    info(f"Enforced global ban on {member} (ID: {member.id}) in guild '{member.guild.name}'", "core")
+                except Exception:
+                    pass
 
     async def close(self) -> None:
         """Gracefully terminates open sockets and connection pools."""

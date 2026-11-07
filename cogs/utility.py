@@ -7,6 +7,8 @@ message recovery (snipe/editsnipe), color analysis, math calculation, polling, a
 from __future__ import annotations
 
 import io
+import ast
+import operator
 import math
 import random
 import re
@@ -277,27 +279,121 @@ class Utility(commands.Cog):
             raw = raw[:1900] + "..."
         await ctx.reply(f"```{discord.utils.escape_markdown(raw)}```", mention_author=False)
 
+class SafeMathEvaluator(ast.NodeVisitor):
+    """Safely evaluates mathematical expressions without arbitrary code execution."""
+
+    OPERATORS = {
+        ast.Add: operator.add,
+        ast.Sub: operator.sub,
+        ast.Mult: operator.mul,
+        ast.Div: operator.truediv,
+        ast.FloorDiv: operator.floordiv,
+        ast.Mod: operator.mod,
+        ast.Pow: operator.pow,
+        ast.USub: operator.neg,
+        ast.UAdd: operator.pos,
+    }
+
+    FUNCTIONS = {
+        "sqrt": math.sqrt,
+        "cbrt": (lambda x: x ** (1 / 3)),
+        "sin": math.sin,
+        "cos": math.cos,
+        "tan": math.tan,
+        "asin": math.asin,
+        "acos": math.acos,
+        "atan": math.atan,
+        "sinh": math.sinh,
+        "cosh": math.cosh,
+        "tanh": math.tanh,
+        "log": math.log,
+        "log10": math.log10,
+        "log2": math.log2,
+        "exp": math.exp,
+        "ceil": math.ceil,
+        "floor": math.floor,
+        "abs": abs,
+        "round": round,
+        "radians": math.radians,
+        "degrees": math.degrees,
+        "factorial": math.factorial,
+        "gcd": math.gcd,
+    }
+
+    CONSTANTS = {
+        "pi": math.pi,
+        "e": math.e,
+        "tau": math.tau,
+        "inf": math.inf,
+    }
+
+    def visit(self, node):
+        if isinstance(node, ast.Expression):
+            return self.visit(node.body)
+        elif isinstance(node, ast.Constant):
+            if isinstance(node.value, (int, float, complex)):
+                return node.value
+            raise ValueError("Only numeric literals are allowed.")
+        elif isinstance(node, ast.BinOp):
+            op_type = type(node.op)
+            if op_type not in self.OPERATORS:
+                raise ValueError(f"Unsupported operator: {op_type.__name__}")
+            left = self.visit(node.left)
+            right = self.visit(node.right)
+            if op_type is ast.Pow and (right > 10000 or (isinstance(left, (int, float)) and left > 10000)):
+                raise OverflowError("Exponentiation exceeds maximum numerical safety limits.")
+            return self.OPERATORS[op_type](left, right)
+        elif isinstance(node, ast.UnaryOp):
+            op_type = type(node.op)
+            if op_type not in self.OPERATORS:
+                raise ValueError(f"Unsupported unary operator: {op_type.__name__}")
+            return self.OPERATORS[op_type](self.visit(node.operand))
+        elif isinstance(node, ast.Call):
+            if not isinstance(node.func, ast.Name):
+                raise ValueError("Nested function calls must be named math functions.")
+            func_name = node.func.id.lower()
+            if func_name not in self.FUNCTIONS:
+                raise ValueError(f"Unrecognized math function: '{func_name}'")
+            args = [self.visit(arg) for arg in node.args]
+            return self.FUNCTIONS[func_name](*args)
+        elif isinstance(node, ast.Name):
+            name_lower = node.id.lower()
+            if name_lower in self.CONSTANTS:
+                return self.CONSTANTS[name_lower]
+            raise ValueError(f"Unknown constant or identifier: '{node.id}'")
+        raise ValueError(f"Unsupported syntax expression: {type(node).__name__}")
+
+
     @commands.command(name="calc", aliases=["calculator", "math"])
     async def calc_cmd(self, ctx: commands.Context, *, expression: str):
-        """Safely evaluate mathematical expressions."""
-        # Sanitize expression: allow only numbers, math operators, parens, dots
-        clean = expression.replace(" ", "")
-        allowed = set("0123456789+-*/().,%^")
-        if not all(c in allowed for c in clean):
-            return await ctx.reply("[ERROR] Invalid characters in mathematical expression.", mention_author=False)
+        """Safely evaluates advanced mathematical expressions with zero-latency execution."""
+        clean_expr = expression.strip("`").replace("^", "**")
+        start_t = time.perf_counter()
 
         try:
-            safe_expr = clean.replace("^", "**")
-            result = eval(safe_expr, {"__builtins__": None}, {})
+            tree = ast.parse(clean_expr, mode="eval")
+            result = SafeMathEvaluator().visit(tree)
+            elapsed = (time.perf_counter() - start_t) * 1000
+
+            # Format result
+            if isinstance(result, float) and result.is_integer():
+                result_display = str(int(result))
+            elif isinstance(result, float):
+                result_display = f"{result:.8f}".rstrip("0").rstrip(".")
+            else:
+                result_display = str(result)
+
             embed = discord.Embed(
-                title="[CALCULATOR]",
+                title="[PRECISION CALCULATOR]",
                 color=THEME_COLOR
             )
-            embed.add_field(name="Expression", value=f"`{expression}`", inline=False)
-            embed.add_field(name="Result", value=f"`{result}`", inline=False)
+            embed.add_field(name="Expression", value=f"```{clean_expr}```", inline=False)
+            embed.add_field(name="Result", value=f"```{result_display}```", inline=False)
+            embed.set_footer(text=f"Evaluated in {elapsed:.3f}ms • Zenith Math Engine")
             await ctx.reply(embed=embed, mention_author=False)
         except Exception as e:
-            await ctx.reply(f"[ERROR] Math evaluation error: {e}", mention_author=False)
+            elapsed = (time.perf_counter() - start_t) * 1000
+            await ctx.reply(f"[ERROR in {elapsed:.2f}ms] Mathematical evaluation failure: {e}", mention_author=False)
 
     @commands.command(name="randomnumber", aliases=["randint", "rand"])
     async def randint_cmd(self, ctx: commands.Context, min_val: int = 1, max_val: int = 100):

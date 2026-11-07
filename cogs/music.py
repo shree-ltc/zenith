@@ -490,7 +490,7 @@ class Music(commands.Cog):
             await ctx.guild.voice_client.disconnect(force=True)
         await ctx.reply(embed=ZenithEmbed.info("Disconnected", "Playback stopped and voice session ended."), mention_author=False)
 
-    @commands.command(name="nowplaying", aliases=["np"])
+    @commands.command(name="nowplaying", aliases=["nowp", "current"])
     async def nowplaying_command(self, ctx: commands.Context):
         """Displays information on the current track."""
         player = self.bot.lavalink.player_manager.get(ctx.guild.id)

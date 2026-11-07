@@ -725,6 +725,33 @@ class Database:
                 count INT DEFAULT 1,
                 PRIMARY KEY (guild_id, user_id, item_id)
             );
+            """,
+            # Developer Blacklists (Users and Guilds)
+            """
+            CREATE TABLE IF NOT EXISTS blacklists (
+                target_id BIGINT PRIMARY KEY,
+                target_type VARCHAR(10) NOT NULL,
+                reason TEXT DEFAULT 'No reason provided',
+                author_id BIGINT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """,
+            # Developer Global Bans (Cross-guild security sanctions)
+            """
+            CREATE TABLE IF NOT EXISTS global_bans (
+                user_id BIGINT PRIMARY KEY,
+                reason TEXT DEFAULT 'Global ban issued by Zenith developer',
+                author_id BIGINT NOT NULL,
+                banned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """,
+            # Global System Settings & Maintenance Mode
+            """
+            CREATE TABLE IF NOT EXISTS system_settings (
+                key VARCHAR(64) PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
             """
         ]
 
